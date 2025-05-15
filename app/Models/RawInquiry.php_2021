@@ -1,0 +1,118 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class RawInquiry extends Model
+{
+    //
+    protected $fillable = [
+        'f_name', 'm_name', 'email',
+        'title', 'l_name', 'country_iso_mobile', 'mobile', 'form_id', 'additional_details',
+        'extra_details', 'unique_code','iso_country_id','country_id','address','postal_code'
+    ];  
+
+    protected $casts = ['extra_details'=>'json'];
+
+
+    protected $dates=['validated_at'];
+
+    protected $appends = ['full_name','validated_status','created_at_formatted','is_validated','form_name'];
+
+    public function getVerifyUrlAttribute()
+    {
+        return route('rawenquiry.verify',$this->unique_code);
+    }
+
+    public function getFullNameAttribute(){
+        $str = "";
+        if($this->f_name!=null) $str.=$this->f_name." ";
+        if($this->m_name!=null) $str.=$this->m_name." ";
+        if($this->l_name!=null) $str.=$this->l_name;
+        
+        return $str;
+
+
+    }
+
+    public function getValidatedStatusAttribute(){
+        if($this->validated_at == null){
+            return "Not validated";
+        }
+        else 
+        return "Validated at ".$this->validated_at->format("d M Y h:i:s");
+    }
+
+    public function form(){
+        return $this->belongsTo(EnquiryForm::class,'form_id','id');
+    }
+
+    public function getCreatedAtFormattedAttribute(){
+        return $this->created_at->format("d M Y h:i:s");
+    }
+
+    public function getStatusTextAttribute(){
+        if($this->active) return "Active";
+        else return "Inactive";
+    }
+
+    public function mobilecode(){
+        return $this->belongsTo(IsoCountry::class,'country_iso_mobile');
+    }
+
+    public function getContactNumberAttribute(){
+        $str = "";
+        if($this->mobilecode) $str.= "+".$this->mobilecode->calling_code." ";
+        if($this->mobile) $str.= $this->mobile;
+
+        return $str;
+    }
+
+    public function nationality(){
+        return $this->belongsTo(IsoCountry::class,'iso_country_id');
+    }
+
+    public function country(){
+        return $this->belongsTo(IsoCountry::class,'country_id');
+    }
+
+    public function getNationalityCountryAttribute(){
+        $str = "";
+        if($this->nationality) return $this->nationality->title;
+
+        return "";
+    }
+
+    public function getIpAddressAttribute(){
+        return optional($this->extra_details)['ip'] ;
+    }
+    
+    public function getIsValidatedAttribute(){
+    	if($this->validated_at == null) return "No";
+    	return "Yes";
+    }
+    
+    public function getFormNameAttribute(){
+         //todo
+         if($this->form) return $this->form->name;
+         return "";
+    }
+
+    public function enquiry(){
+        return $this->hasOne(Enquiry::class,'raw_enquiry_id');
+    }
+
+    public function getFullAddressAttribute(){
+        return $this->address . ", " . $this->postal_code . ", " . $this->country_name;
+    }
+
+
+    public function getCountryNameAttribute(){
+    	if($this->country){
+    		return ucwords(strtolower($this->country->title));
+    	}
+    	return "";
+    }
+
+}

@@ -1,0 +1,125 @@
+<?php
+
+namespace App\DataTables;
+
+use App\Models\ImmigrationInvoice;
+use App\Models\Invoice;
+use App\Report;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Maatwebsite\Excel\Excel as ExcelExcel;
+use Maatwebsite\Excel\Facades\Excel;
+use Yajra\DataTables\Html\Button;
+use Yajra\DataTables\Html\Column;
+use Yajra\DataTables\Html\Editor\Editor;
+use Yajra\DataTables\Html\Editor\Fields;
+use Yajra\DataTables\Services\DataTable;
+use PDF;
+
+class ReportDataTable extends DataTable
+{
+
+    protected $excelWriter = 'Xls';
+
+
+    /**
+     * Build DataTable class.
+     *
+     * @param mixed $query Results from query() method.
+     * @return \Yajra\DataTables\DataTableAbstract
+     */
+    public function dataTable($query)
+    {
+        return datatables()
+            ->eloquent($query)
+            ->addColumn('receipt_details', function ($row) {
+                return $row->total - $row->balance;
+            })
+            ->addIndexColumn();
+    }
+
+    /**
+     * Get query source of dataTable.
+     *
+     * @param \App\Report $model
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function query(Invoice $model)
+    {
+        $request = $this;
+        $model = $model->query()->with(['receipts', 'currency']);
+        if ($request->startdate && $request->enddate) {
+            $start = Carbon::createFromFormat(config('constant.date_format'), $this->startdate);
+            $end = Carbon::createFromFormat(config('constant.date_format'), $this->enddate);
+            $model->where('date', ">=", $start)->where('date', "<=", $end);
+        }
+        if($request->outstanding_balance){
+            $model->where('balance',$request->outstanding_balance);
+        }
+        return $model;
+    }
+
+    /**
+     * Optional method if you want to use html builder.
+     *
+     * @return \Yajra\DataTables\Html\Builder
+     */
+    public function html()
+    {
+        $js = "data.startdate = $('input[name=startdate]').val();
+                    data.enddate = $('input[name=enddate]').val();
+                    data.outstanding_balance = $('select[name=outstanding_balance]').val();";
+        // dd("lol");
+        return $this->builder()
+            ->setTableId('report-table-invoice')
+            ->columns($this->getColumns())
+            ->minifiedAjax(null, $js)
+            ->dom('Bfrtip')
+            ->orderBy(1)
+            ->buttons(
+               [ Button::make('pdf')->text('Export to PDF'),Button::make('csv')->text('Export to CSV')]
+            );
+    }
+
+    /**
+     * Get columns.
+     *
+     * @return array
+     */
+    protected function getColumns()
+    {
+        return [
+            Column::make("DT_RowIndex")->title("S/N"),
+            Column::make("date")->title("Invoice Date"),
+            Column::make("client_name", 'client_name')->title("Client Name")->exportable(false),
+            Column::make("invoice_no", 'id')->title("Invoice No"),
+            Column::make("currency.title", 'iso_currencylist_id')->title("Currency"),
+            Column::make("total")->title("Amount"),
+            Column::make("receipts_list")->title("Receipts")->orderable(false)->searchable(false),
+
+            Column::make("receipt_details")->title("Total Received")->orderable(false)->searchable(false),
+            // Column::make("receipt_amounts")->title("Receipt Amounts")->orderable(false)->searchable(false),
+            Column::make("balance")->title("Balance")->orderable(false)->searchable(false)
+        ];
+    }
+
+    /**
+     * Get filename for export.
+     *
+     * @return string
+     */
+    protected function filename()
+    {
+        return 'Invoice and Receipt Balance_' . date('d-m-Y H:i');
+    }
+
+
+    public function pdf()
+    {
+        $data = $this->getDataForPrint();
+        $title = "Invoice and Receipt Balance";
+
+        return PDF::loadView($this->printPreview,compact('data','title'))->download($this->getFilename() . '.pdf');
+    //    return PDF::loadView($this->printPreview, compact('data','title'))->stream();
+    }
+}
