@@ -23,6 +23,8 @@ use App\Http\Controllers\Admin\EmployeeContactDetailController;
 use App\Http\Controllers\Admin\EmployeeDocumentController;
 use App\Http\Controllers\Admin\EmployeeEmergencyContactController;
 use App\Http\Controllers\Admin\EnquiryFormController;
+use App\Http\Controllers\Admin\PassportDetailController;
+use App\Http\Controllers\Admin\EmploymentInfoController;
 use App\Http\Controllers\Admin\ImmigrationAppealController;
 use App\Http\Controllers\Admin\ImmigrationAppealApplicationController;
 use App\Http\Controllers\Admin\InvoiceController;
@@ -42,6 +44,9 @@ use App\Http\Controllers\Admin\VisaApplicationProcessController;
 use App\Http\Controllers\Admin\VisaApplicationProcessLogController;
 use App\Http\Controllers\Admin\VisaApplicationProcessStatusController;
 use App\Http\Controllers\Admin\VisaApplicationProcessStatusLogController;
+use App\Http\Controllers\Admin\RawInquiryController;
+use App\Http\Controllers\Admin\InvoiceItemController;
+use App\Http\Controllers\Admin\ClientController;
 
 
 use App\Http\Controllers\ImageUploadController;
@@ -55,6 +60,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\AppBaseController;
 use App\Http\Controllers\EnquiryCareController;
 use App\Http\Controllers\FinancialAssessmentDocumentController;
+use App\Models\Employee;
 use PhpOffice\PhpSpreadsheet\Calculation\Web\Service;
 
 /*
@@ -93,211 +99,232 @@ Route::middleware('admin')->group(function () {
 	});
 
 	Route::resource('partner', PartnerController::class);
-	Route::get("/partner/{id}/toggle", "PartnerController@toggle")->name('partner.toggle');
+	Route::get("/partner/{id}/toggle", [PartnerController::class, 'toggle'])->name('partner.toggle');
 
     Route::resource("serviceprovider", ServiceProviderController::class);
-    Route::get("/serviceprovider/{id}/toggle", "ServiceProviderController@toggle")->name('serviceprovider.toggle');
+    Route::get("/serviceprovider/{id}/toggle", [ServiceProviderController::class, 'toggle'])->name('serviceprovider.toggle');
     Route::get('serviceproviders/data', [ServiceProviderController::class, 'getServiceProvidersData'])->name('serviceproviders.data');
 
 
-	Route::name('old.')->prefix('old')->group(function () {
-		Route::get("immigrationinvoice", "OldController@indexImmigrationInvoice")->name('immigrationinvoice.index');
-		Route::get("immigrationinvoice/{id}", "OldController@showImmigrationInvoice")->name('immigrationinvoice.show');
-		Route::post("immigrationinvoice/sendmail/{id}", "OldController@sendEmailImmigrationInvoice")->name('immigrationinvoice.sendemail');
 
-		Route::get("generalinvoice", "OldController@indexGeneralInvoice")->name('generalinvoice.index');
-		Route::get("generalinvoice/{id}", "OldController@showGeneralInvoice")->name('generalinvoice.show');
-		Route::post("generalinvoice/sendmail/{id}", "OldController@sendEmailGeneralInvoice")->name('generalinvoice.sendemail');
+
+	Route::name('old.')->prefix('old')->group(function () {
+		// Immigration Invoice Routes
+		Route::get("immigrationinvoice", [OldController::class, 'indexImmigrationInvoice'])->name('immigrationinvoice.index');
+		Route::get("immigrationinvoice/{id}", [OldController::class, 'showImmigrationInvoice'])->name('immigrationinvoice.show');
+		Route::post("immigrationinvoice/sendmail/{id}", [OldController::class, 'sendEmailImmigrationInvoice'])->name('immigrationinvoice.sendemail');
+
+		// General Invoice Routes
+		Route::get("generalinvoice", [OldController::class, 'indexGeneralInvoice'])->name('generalinvoice.index');
+		Route::get("generalinvoice/{id}", [OldController::class, 'showGeneralInvoice'])->name('generalinvoice.show');
+		Route::post("generalinvoice/sendmail/{id}", [OldController::class, 'sendEmailGeneralInvoice'])->name('generalinvoice.sendemail');
 	});
+
+
+
 
 
 	Route::name('delete.')->prefix('delete')->group(function () {
-		Route::get("/", "DeleteController@index")->name('index');
-		Route::get("clients", "DeleteController@clients")->name('clients');
-		Route::get("employees", "DeleteController@employees")->name('employees');
-		Route::get("visas", "DeleteController@visas")->name('visas');
-		Route::get("passports", "DeleteController@passports")->name('passports');
+		Route::get('/', [DeleteController::class, 'index'])->name('index');
+		Route::get('clients', [DeleteController::class, 'clients'])->name('clients');
+		Route::get('employees', [DeleteController::class, 'employees'])->name('employees');
+		Route::get('visas', [DeleteController::class, 'visas'])->name('visas');
+		Route::get('passports', [DeleteController::class, 'passports'])->name('passports');
 	});
+
 
 
 	Route::resource("companybranch", CompanyBranchController::class);
 	Route::resource("companydocument", CompanyDocumentController::class);
-	Route::resource("communicationlog", CommunicationLogController::class)->only('show', 'destroy', 'index');
+	Route::resource("communicationlog", CommunicationLogController::class)->only(['show', 'destroy', 'index']);
 	Route::resource("advisor", AdvisorController::class);
 	Route::resource("servicefee", ServicefeeController::class);
-	Route::resource('user', UserController::class);
+	Route::resource("user", UserController::class);
 
 
+	Route::resource('employee', EmployeeController::class);
+	Route::get('employee/{id}/restore', [EmployeeController::class, 'restore'])->name('employee.restore');
 
-	Route::resource('employee', "EmployeeController");
-	Route::get("employee/{id}/restore", "EmployeeController@restore")->name('employee.restore');
+	Route::resource('employeecontact', EmployeeContactDetailController::class)->only(['store', 'edit', 'update']);
+	Route::resource('employeeaddress', EmployeeAddressController::class)->only(['store', 'edit', 'update']);
+	Route::resource('employeeemergency', EmployeeEmergencyContactController::class)->only(['store', 'edit', 'update']);
+	Route::resource('enquiryform', EnquiryFormController::class);
 
-	Route::resource('employeecontact', "EmployeeContactDetailController")->only(['store', 'edit', 'update']);
-	Route::resource('employeeaddress', "EmployeeAddressController")->only(['store', 'edit', 'update']);
-	Route::resource('employeeemergency', "EmployeeEmergencyContactController")->only(['store', 'edit', 'update']);
-	Route::resource('enquiryform', "EnquiryFormController");
+	Route::resource('employmentinfo', EmploymentInfoController::class)->only(['show', 'store', 'edit', 'update']);
+	Route::get('employmentinfo/create/{id}', [EmploymentInfoController::class, 'create'])->name('employmentinfo.create');
 
-	Route::resource('employmentinfo', "EmploymentInfoController")->only(['show', 'store', 'edit', 'update']);
-	Route::get("employmentinfo/create/{id}", "EmploymentInfoController@create")->name("employmentinfo.create");
+	Route::resource('passportdetail', PassportDetailController::class)->except(['index']);
+	Route::get('passportdetail/{id}/restore', [PassportDetailController::class, 'restore'])->name('passportdetail.restore');
 
-	Route::resource("passportdetail", "PassportDetailController")->except(['index']);
-	Route::get("passportdetail/{id}/restore", "PassportDetailController@restore")->name('passportdetail.restore');
+	Route::resource('visa', VisaController::class)->except(['index']);
+	Route::get('visa/{id}/toggle', [VisaController::class, 'toggle'])->name('visa.toggle');
+	Route::get('visa/{id}/restore', [VisaController::class, 'restore'])->name('visa.restore');
+	Route::delete('delete-ukvisa', [VisaController::class, 'destroyUkvisa'])->name('ukvisa.destroy');
 
-	Route::resource("visa", "VisaController")->except(['index']);
-	Route::get("visa/{id}/toggle", "VisaController@toggle")->name('visa.toggle');
+	Route::resource('payslip', PaySlipController::class)->except(['index', 'create']);
+	Route::get('payslip/create/{id}', [PaySlipController::class, 'create'])->name('payslip.create');
+	Route::get('payslip/email/{id}', [PaySlipController::class, 'email'])->name('payslip.email');
 
-	Route::get("visa/{id}/restore", "VisaController@restore")->name('visa.restore');
-	Route::delete('delete-ukvisa', 'VisaController@destroyUkvisa')->name('ukvisa.destroy');
+	Route::resource('p4560', P5060Controller::class)->except(['index', 'create']);
+	Route::get('p4560/create/{id}', [P5060Controller::class, 'create'])->name('p4560.create');
+	Route::get('p4560/email/{id}', [P5060Controller::class, 'email'])->name('p4560.email');
 
-	Route::resource("payslip", "PaySlipController")->except(['index', 'create']);
-	Route::get('payslip/create/{id}', "PaySlipController@create")->name('payslip.create');
-	Route::get('payslip/email/{id}', "PaySlipController@email")->name('payslip.email');
-
-	Route::resource("p4560", "P5060Controller")->except(['index', 'create']);
-	Route::get('p4560/create/{id}', "P5060Controller@create")->name('p4560.create');
-	Route::get('p4560/email/{id}', "P5060Controller@email")->name('p4560.email');
-
-	Route::resource("employeedocument", "EmployeeDocumentController")->except(['index']);
-
-	//Raw Inquiry
-	Route::resource("rawenquiry", "RawInquiryController");
-	Route::get("rawenquiry/toggle/{id}", "RawInquiryController@toggle")->name('rawenquiry.toggle');
-	Route::post('rawenquiry/{id}/add-note', 'RawInquiryController@addNote')->name('rawenquiry.add-note');
-	Route::get("rawenquiry/process/{id}", "RawInquiryController@process")->name('rawenquiry.process');
-	Route::post("rawenquiry/process/{id}", "RawInquiryController@storeToEnquiry")->name('rawenquiry.process');
-
-	//notifications
-	Route::resource("notification", "NotificationController")->only("show", "index");
-	Route::get("prepareNotifications", "NotificationController@prepareNotifications");
-	Route::get("/notif/delete/{id}", "NotificationController@deleteNotification")->name('delete.notification');
+	Route::resource('employeedocument', EmployeeDocumentController::class)->except(['index']);
 
 
-	//attendance notes
-	Route::get("attendancenote/{id}/create", "AttendanceNoteController@create")->name("attendancenote.create");
-	Route::get("attendancenote/{id}/edit", "AttendanceNoteController@edit")->name("attendancenote.edit");
+		// 🔹 Raw Inquiry
+	Route::resource('rawenquiry', RawInquiryController::class);
+	Route::get('rawenquiry/toggle/{id}', [RawInquiryController::class, 'toggle'])->name('rawenquiry.toggle');
+	Route::post('rawenquiry/{id}/add-note', [RawInquiryController::class, 'addNote'])->name('rawenquiry.add-note');
+	Route::get('rawenquiry/process/{id}', [RawInquiryController::class, 'process'])->name('rawenquiry.process');
+	Route::post('rawenquiry/process/{id}', [RawInquiryController::class, 'storeToEnquiry'])->name('rawenquiry.process');
 
-	Route::post("attendancenote/{id}/create", "AttendanceNoteController@store")->name("attendancenote.store");
-	Route::put("attendancenote/{id}/edit", "AttendanceNoteController@update")->name("attendancenote.update");
+	// 🔹 Notifications
+	Route::resource('notification', NotificationController::class)->only(['show', 'index']);
+	Route::get('prepareNotifications', [NotificationController::class, 'prepareNotifications']);
+	Route::get('notif/delete/{id}', [NotificationController::class, 'deleteNotification'])->name('delete.notification');
 
-	Route::get("attendancenote/{id}", "AttendanceNoteController@show")->name("attendancenote.show");
-	Route::delete("attendancenote/{id}", "AttendanceNoteController@destroy")->name("attendancenote.destroy");
+	// 🔹 Attendance Notes
+	Route::get('attendancenote/{id}/create', [AttendanceNoteController::class, 'create'])->name('attendancenote.create');
+	Route::post('attendancenote/{id}/create', [AttendanceNoteController::class, 'store'])->name('attendancenote.store');
 
+	Route::get('attendancenote/{id}/edit', [AttendanceNoteController::class, 'edit'])->name('attendancenote.edit');
+	Route::put('attendancenote/{id}/edit', [AttendanceNoteController::class, 'update'])->name('attendancenote.update');
+
+	Route::get('attendancenote/{id}', [AttendanceNoteController::class, 'show'])->name('attendancenote.show');
+	Route::delete('attendancenote/{id}', [AttendanceNoteController::class, 'destroy'])->name('attendancenote.destroy');
+
+	// 🔹 Reports
 	Route::name('report.')->prefix('report')->group(function () {
-		Route::get('/invoice', "ReportController@index")->name('invoice');
-		Route::get('/receipt', "ReportController@indexReceipt")->name('receipt');
-		Route::get('/imm_applications', "ReportController@indexImmigration")->name('immigration');
-		Route::get('/clients', "ReportController@indexClient")->name('client');
-		Route::get('/visas', "ReportController@indexVisa")->name('visa');
+		Route::get('/invoice', [ReportController::class, 'index'])->name('invoice');
+		Route::get('/receipt', [ReportController::class, 'indexReceipt'])->name('receipt');
+		Route::get('/imm_applications', [ReportController::class, 'indexImmigration'])->name('immigration');
+		Route::get('/clients', [ReportController::class, 'indexClient'])->name('client');
+		Route::get('/visas', [ReportController::class, 'indexVisa'])->name('visa');
 	});
 
+	// 🔹 Finance
 	Route::name('finance.')->group(function () {
-		Route::resource("invoice", "InvoiceController");
-		Route::resource("bank", "BankController")->except(['destroy']);
-		Route::resource('receipt', "ReceiptController");
-		//invoice
-		Route::get("/pdf/{id}/invoice", "InvoiceController@downloadPdf");
-		Route::get("/invoice/generate/{id}", "InvoiceController@generateDocument")->name('invoice.generate');
-		Route::post("/invoice/sendmail/{id}", "InvoiceController@sendEmail")->name('invoice.sendemail');
-		Route::resource('invoiceitem', "InvoiceItemController")->only(['store', 'update', 'destroy']);
+		// Invoice
+		Route::resource('invoice', InvoiceController::class);
+		Route::get('/pdf/{id}/invoice', [InvoiceController::class, 'downloadPdf']);
+		Route::get('/invoice/generate/{id}', [InvoiceController::class, 'generateDocument'])->name('invoice.generate');
+		Route::post('/invoice/sendmail/{id}', [InvoiceController::class, 'sendEmail'])->name('invoice.sendemail');
+		Route::resource('invoiceitem', InvoiceItemController::class)->only(['store', 'update', 'destroy']);
 
-		//receipt
-		Route::get("/pdf/{id}/receipt", "ReceiptController@downloadPdf");
-		Route::put("/receipt/{id}/inv", "ReceiptController@updateFromInvoice")->name('receipt.updateFromInvoice');
-		Route::get("/receipt/generate/{id}", "ReceiptController@generateDocument")->name('receipt.generate');
-		Route::post("/receipt/sendmail/{id}", "ReceiptController@sendEmail")->name('receipt.sendemail');
+		// Bank
+		Route::resource('bank', BankController::class)->except(['destroy']);
+
+		// Receipt
+		Route::resource('receipt', ReceiptController::class);
+		Route::get('/pdf/{id}/receipt', [ReceiptController::class, 'downloadPdf']);
+		Route::put('/receipt/{id}/inv', [ReceiptController::class, 'updateFromInvoice'])->name('receipt.updateFromInvoice');
+		Route::get('/receipt/generate/{id}', [ReceiptController::class, 'generateDocument'])->name('receipt.generate');
+		Route::post('/receipt/sendmail/{id}', [ReceiptController::class, 'sendEmail'])->name('receipt.sendemail');
 	});
 
-	Route::prefix("ajax")->group(function () {
-		Route::get('/clients', "ClientController@ajaxindex");
-		Route::get('/visa/{id}', "VisaController@ajaxShow");
+		Route::prefix("ajax")->group(function () {
+		Route::get('/clients', [ClientController::class, 'ajaxindex']);
+		Route::get('/visa/{id}', [VisaController::class, 'ajaxShow']);
 
-		Route::get('/enquiries', "EnquiryController@ajaxindex")->name("ajax.enquiry.index");
-		Route::get('/invoices', "InvoiceController@ajaxindex");
-		Route::get('/servicefees', "ServicefeeController@ajaxindex")->name('ajax.servicefee.index');
-		Route::get('/partners', "PartnerController@ajaxindex")->name('ajax.partner.index');
-        Route::get('/serviceprovider', [ServiceProviderController::class, 'ajaxIndex'])->name('ajax.serviceprovider.index');
+		Route::get('/enquiries', [EnquiryController::class, 'ajaxindex'])->name("ajax.enquiry.index");
+		Route::get('/invoices', [InvoiceController::class, 'ajaxindex']);
+		Route::get('/servicefees', [ServicefeeController::class, 'ajaxindex'])->name('ajax.servicefee.index');
+		Route::get('/partners', [PartnerController::class, 'ajaxindex'])->name('ajax.partner.index');
+		Route::get('/serviceprovider', [ServiceProviderController::class, 'ajaxIndex'])->name('ajax.serviceprovider.index');
 
-
-
-		Route::post("/ec/{id}/content", "PreviewController@contentEc")->name('ajax.content.ec');
-		Route::post("/loa/{id}/content", "PreviewController@contentLoa")->name('ajax.content.loa');
+		Route::post('/ec/{id}/content', [PreviewController::class, 'contentEc'])->name('ajax.content.ec');
+		Route::post('/loa/{id}/content', [PreviewController::class, 'contentLoa'])->name('ajax.content.loa');
 	});
 
-	Route::get("/get-company-document/{file}", "CompanyDocumentController@getDownload")->name('companydocumenturl');
+		// File Downloads
+		Route::get('/get-company-document/{file}', [CompanyDocumentController::class, 'getDownload'])->name('companydocumenturl');
+		Route::get('/get-file-document/{file}', [EnquiryFormController::class, 'getDownload'])->name('enquirydocumenturl');
 
-	Route::get("/get-file-document/{file}", "EnquiryFormController@getDownload")->name('enquirydocumenturl');
+		// Enquiry
+		Route::prefix('enquiry')->group(function () {
+		Route::get('/', [EnquiryController::class, 'index'])->name('enquiry.list');
+		Route::get('/datatable', [EnquiryController::class, 'datatable'])->name('enquiry.data');
+		Route::get('/status', [EnquiryController::class, 'status'])->name('enquiry.status');
+		Route::get('/add', [EnquiryController::class, 'create'])->name('enquiry.create');
+		Route::post('/save', [EnquiryController::class, 'store'])->name('enquiry.save');
+		Route::post('/update-enquiry-status', [EnquiryController::class, 'statusUpdate'])->name('enquiry.postStatusUpdate');
+		Route::get('/{id}/show', [EnquiryController::class, 'show'])->name('enquiry.show');
+		Route::post('/{id}/show', [EnquiryController::class, 'unlink'])->name('enquiry.unlink');
 
-	// Enquiry
-	Route::group(['prefix' => 'enquiry',], function () {
-		Route::get('/', ['as' => 'enquiry.list', 'uses' => 'EnquiryController@index']);
-		Route::get('/datatable', ['as' => 'enquiry.data', 'uses' => 'EnquiryController@datatable']);
-		Route::get('/status', ['as' => 'enquiry.status', 'uses' => 'EnquiryController@status']);
-		Route::get('/add', ['as' => 'enquiry.create', 'uses' => 'EnquiryController@create']);
-		Route::post('/save', ['as' => 'enquiry.save', 'uses' => 'EnquiryController@store']);
-		Route::post('/update-enquiry-status', ['as' => 'enquiry.postStatusUpdate', 'uses' => 'EnquiryController@statusUpdate']);
-		Route::get('/{id}/show', ['as' => 'enquiry.show', 'uses' => 'EnquiryController@show']);
-		Route::post('/{id}/show', ['as' => 'enquiry.unlink', 'uses' => 'EnquiryController@unlink']);
+		// Logs
+		Route::get('/{id}/log', [EnquiryController::class, 'indexLog'])->name('enquiry.log');
+		Route::get('/log/{lid}', [EnquiryController::class, 'showLog'])->name('enquiry.show.log');
+		Route::post('/{id}/log', [EnquiryController::class, 'storeLog'])->name('enquiry.store.log');
+		Route::delete('/{id}/log', [EnquiryController::class, 'destroyLog'])->name('enquiry.destroy.log');
+		Route::put('/{id}/log', [EnquiryController::class, 'updateLog'])->name('enquiry.update.log');
 
-		Route::get('/{id}/log', ['as' => 'enquiry.log', 'uses' => 'EnquiryController@indexLog']);
-		Route::get('/log/{lid}', ['as' => 'enquiry.show.log', 'uses' => 'EnquiryController@showLog']);
-		Route::post('/{id}/log', ['as' => 'enquiry.store.log', 'uses' => 'EnquiryController@storeLog']);
-		Route::delete('/{id}/log', ['as' => 'enquiry.destroy.log', 'uses' => 'EnquiryController@destroyLog']);
-		Route::put('/{id}/log', ['as' => 'enquiry.update.log', 'uses' => 'EnquiryController@updateLog']);
+		// Status & Edit
+		Route::post('/status/{id}/update', [EnquiryController::class, 'statusUpdate'])->name('enquiry.statusUpdate');
+		Route::get('/{id}/edit', [EnquiryController::class, 'edit'])->name('enquiry.edit');
+		Route::put('/{id}/update', [EnquiryController::class, 'update'])->name('enquiry.update');
+		Route::delete('/{id}/delete', [EnquiryController::class, 'destroy'])->name('enquiry.delete');
 
+		// Client Care
+		Route::post('/{id}/clientcare', [EnquiryController::class, 'clientCare'])->name('enquiry.clientcare');
+		Route::get('/{id}/clientcare', [EnquiryController::class, 'showClientCare'])->name('enquiry.clientcare');
+		Route::post('/enquiry/clientcare/{id}/save', [EnquiryController::class, 'saveClientCare'])->name('enquiry.clientcare.save');
+		Route::get('/load-client-care/{id}', [EnquiryController::class, 'loadClientCare'])->name('load.clientcare');
 
-		Route::post('/status/{id}/update', ['as' => 'enquiry.statusUpdate', 'uses' => 'EnquiryController@statusUpdate']);
-		Route::get('/{id}/edit', ['as' => 'enquiry.edit', 'uses' => 'EnquiryController@edit']);
-		Route::put('/{id}/update', ['as' => 'enquiry.update', 'uses' => 'EnquiryController@update']);
-		Route::delete('/{id}/delete', ['as' => 'enquiry.delete', 'uses' => 'EnquiryController@destroy']);
+		// CCL Application
+		Route::post('/{id}/cclapplication', [EnquiryController::class, 'cclApplication'])->name('enquiry.cclapplication');
+		Route::get('/{id}/cclapplication', [EnquiryController::class, 'showCclApplication'])->name('enquiry.cclapplication');
+		Route::post('/enquiry/cclapplication/{id}/save', [EnquiryController::class, 'saveCclApplication'])->name('enquiry.clientcare.save');
+		Route::get('/load-ccl-application/{id}', [EnquiryController::class, 'loadCclApplication'])->name('load.cclapplication');
 
-		Route::post("/{id}/clientcare", "EnquiryController@clientCare")->name('enquiry.clientcare');
-		Route::get("/{id}/clientcare", "EnquiryController@showClientCare")->name('enquiry.clientcare');
-        Route::post('/enquiry/clientcare/{id}/save', [EnquiryController::class, 'saveClientCare'])->name('enquiry.clientcare.save');
-        Route::get('/load-client-care/{id}', [EnquiryController::class, 'loadClientCare'])->name('load.clientcare');
+		Route::get('/enquiry/{id}/load-data', [EnquiryController::class, 'loadClientCareData']);
 
-        Route::post("/{id}/cclapplication", "EnquiryController@cclApplication")->name('enquiry.cclapplication');
-		Route::get("/{id}/cclapplication", "EnquiryController@showCclApplication")->name('enquiry.cclapplication');
-        Route::post('/enquiry/cclapplication/{id}/save', [EnquiryController::class, 'saveCclApplication'])->name('enquiry.clientcare.save');
-        Route::get('/load-ccl-application/{id}', [EnquiryController::class, 'loadCclApplication'])->name('load.cclapplication');
+		// Enquiry Care
+		Route::get('/{id}/enquirycare', [EnquiryController::class, 'showEnquiryCare'])->name('enquiry.enquirycare');
+		Route::post('/{id}/enquirycare', [EnquiryController::class, 'enquiryCare'])->name('enquiry.enquirycare');
 
-        Route::get('/enquiry/{id}/load-data', [EnquiryController::class, 'loadClientCareData']);
+		// Letter of Authority
+		Route::get('/{id}/letterofauthority', [EnquiryController::class, 'showLetterOfAuthority'])->name('enquiry.letterofauthority');
+		Route::post('/{id}/letterofauthority', [EnquiryController::class, 'letterOfAuthority'])->name('enquiry.letterofauthority');
+		Route::post('/loa/load-content/{id}', [EnquiryController::class, 'loadContent'])->name('ajax.load.loa');
 
-		Route::get("/{id}/enquirycare", "EnquiryController@showEnquiryCare")->name('enquiry.enquirycare');
-		Route::post("/{id}/enquirycare", "EnquiryController@enquiryCare")->name('enquiry.enquirycare');
+		// Letter to Firm
+		Route::get('/{id}/lettertofirm', [EnquiryController::class, 'showLetterToFirm'])->name('enquiry.lettertofirm');
+		Route::post('/{id}/lettertofirm', [EnquiryController::class, 'letterToFirm'])->name('enquiry.lettertofirm');
 
-        Route::get("/{id}/letterofauthority", "EnquiryController@showLetterOfAuthority")->name('enquiry.letterofauthority');
-		Route::post("/{id}/letterofauthority", "EnquiryController@letterOfAuthority")->name('enquiry.letterofauthority');
-        Route::post('/loa/load-content/{id}', [EnquiryController::class, 'loadContent'])->name('ajax.load.loa');
+		// Request to Medical
+		Route::get('/{id}/requesttomedical', [EnquiryController::class, 'showRequestToMedical'])->name('enquiry.requesttomedical');
+		Route::post('/{id}/requesttomedical', [EnquiryController::class, 'requestToMedical'])->name('enquiry.requesttomedical');
 
+		// Request to Finance
+		Route::get('/{id}/requesttofinance', [EnquiryController::class, 'showRequestToFinance'])->name('enquiry.requesttofinance');
+		Route::post('/{id}/requesttofinance', [EnquiryController::class, 'requestToFinance'])->name('enquiry.requesttofinance');
 
-        Route::get("/{id}/lettertofirm", "EnquiryController@showLetterToFirm")->name('enquiry.lettertofirm');
-		Route::post("/{id}/lettertofirm", "EnquiryController@letterToFirm")->name('enquiry.lettertofirm');
+		// Request to Tribunal
+		Route::get('/{id}/requesttotrbunal', [EnquiryController::class, 'showRequestToTrbunal'])->name('enquiry.requesttotrbunal');
+		Route::post('/{id}/requesttotrbunal', [EnquiryController::class, 'requestToTrbunal'])->name('enquiry.requesttotrbunal');
 
-        Route::get("/{id}/requesttomedical", "EnquiryController@showRequestToMedical")->name('enquiry.requesttomedical');
-		Route::post("/{id}/requesttomedical", "EnquiryController@requestToMedical")->name('enquiry.requesttomedical');
+		// Subject Access
+		Route::get('/{id}/subjectaccess', [EnquiryController::class, 'showSubjectAccess'])->name('enquiry.subjectaccess');
+		Route::post('/{id}/subjectaccess', [EnquiryController::class, 'subjectAccess'])->name('enquiry.subjectaccess');
 
-        Route::get("/{id}/requesttofinance", "EnquiryController@showRequestToFinance")->name('enquiry.requesttofinance');
-		Route::post("/{id}/requesttofinance", "EnquiryController@requestToFinance")->name('enquiry.requesttofinance');
+		// File Opening Form
+		Route::get('/{id}/fileopeningform', [EnquiryController::class, 'showFileOpeningForm'])->name('enquiry.fileopeningform');
+		Route::post('/{id}/fileopeningform', [EnquiryController::class, 'fileOpeningForm'])->name('enquiry.fileopeningform');
 
-        Route::get("/{id}/requesttotrbunal", "EnquiryController@showRequestToTrbunal")->name('enquiry.requesttotrbunal');
-		Route::post("/{id}/requesttotrbunal", "EnquiryController@requestToTrbunal")->name('enquiry.requesttotrbunal');
+		// Client of Authority
+		Route::get('/{id}/clientofauthority', [EnquiryController::class, 'showClientOfAuthority'])->name('enquiry.clientofauthority');
+		Route::post('/{id}/clientofauthority', [EnquiryController::class, 'clientOfAuthority'])->name('enquiry.clientofauthority');
 
-        Route::get("/{id}/subjectaccess", "EnquiryController@showSubjectAccess")->name('enquiry.subjectaccess');
-		Route::post("/{id}/subjectaccess", "EnquiryController@subjectAccess")->name('enquiry.subjectaccess');
+		// LTE CCL
+		Route::get('/{id}/lteccl', [EnquiryController::class, 'showLteCcl'])->name('enquiry.lteccl');
+		Route::post('/{id}/lteccl', [EnquiryController::class, 'lteCcl'])->name('enquiry.lteccl');
 
-        Route::get("/{id}/fileopeningform", "EnquiryController@showFileOpeningForm")->name('enquiry.fileopeningform');
-		Route::post("/{id}/fileopeningform", "EnquiryController@fileOpeningForm")->name('enquiry.fileopeningform');
-
-        Route::get("/{id}/clientofauthority", "EnquiryController@showClientOfAuthority")->name('enquiry.clientofauthority');
-		Route::post("/{id}/clientofauthority", "EnquiryController@clientOfAuthority")->name('enquiry.clientofauthority');
-
-        Route::get("/{id}/lteccl", "EnquiryController@showLteCcl")->name('enquiry.lteccl');
-		Route::post("/{id}/lteccl", "EnquiryController@lteCcl")->name('enquiry.lteccl');
-
-        Route::get("/{id}/newccl", "EnquiryController@showNewCcl")->name('enquiry.newccl');
-		Route::post("/{id}/newccl", "EnquiryController@newCcl")->name('enquiry.newccl');
-
+		// New CCL
+		Route::get('/{id}/newccl', [EnquiryController::class, 'showNewCcl'])->name('enquiry.newccl');
+		Route::post('/{id}/newccl', [EnquiryController::class, 'newCcl'])->name('enquiry.newccl');
 	});
+
 
 
 

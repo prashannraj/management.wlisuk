@@ -60,7 +60,7 @@ class User extends Authenticatable
     {
         // dd($roles);
         // dd($this->roles()->whereIn('title', strtolower($roles))->first());
-        return null !== $this->roles()->whereIn(‘name’, $roles)->first();
+        return null !== $this->roles()->whereIn('name', $roles)->first();
     }
 
     public function hasRole($role)
