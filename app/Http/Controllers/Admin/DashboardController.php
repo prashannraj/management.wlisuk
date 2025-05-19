@@ -8,10 +8,16 @@ use App\Models\Enquiry;
 use App\Models\ImmigrationApplication;
 use App\Models\Invoice;
 use App\Models\Visa;
+
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use DB;
-use Setting;
+
+use Illuminate\Support\Facades\DB;
+// Remove this line if it does not exist in your project
+
+// If you are using an external Setting package, import its facade correctly, for example:
+use anlutro\LaravelSettings\Facade as Setting;
+
 class DashboardController extends Controller
 
 {

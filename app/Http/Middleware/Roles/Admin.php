@@ -2,7 +2,7 @@
 
 namespace App\Http\Middleware\Roles;
 
-use Auth;
+use Illuminate\Support\Facades\Auth;
 use Closure;
 
 class Admin

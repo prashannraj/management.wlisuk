@@ -1,5 +1,62 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Artisan;
+use App\Http\Controllers\Admin\ServiceProviderController;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\CompanyInfoController;
+use App\Http\Controllers\Admin\EnquiryController;
+use App\Http\Controllers\Admin\AdditionalDocumentController;
+use App\Http\Controllers\Admin\AdmissionApplicationController;
+use App\Http\Controllers\Admin\AdvisorController;
+use App\Http\Controllers\Admin\ApplicantEmploymentInfoController;
+use App\Http\Controllers\Admin\ApplicantPayslipController;
+use App\Http\Controllers\Admin\AttendanceNoteController;
+use App\Http\Controllers\Admin\BankController;
+use App\Http\Controllers\Admin\CompanyBranchController;
+use App\Http\Controllers\Admin\CompanyDocumentController;
+use App\Http\Controllers\Admin\CommunicationLogController;
+use App\Http\Controllers\Admin\DeleteController;
+use App\Http\Controllers\Admin\EmployeeController;
+use App\Http\Controllers\Admin\EmployeeAddressController;
+use App\Http\Controllers\Admin\EmployeeContactDetailController;
+use App\Http\Controllers\Admin\EmployeeDocumentController;
+use App\Http\Controllers\Admin\EmployeeEmergencyContactController;
+use App\Http\Controllers\Admin\EnquiryFormController;
+use App\Http\Controllers\Admin\ImmigrationAppealController;
+use App\Http\Controllers\Admin\ImmigrationAppealApplicationController;
+use App\Http\Controllers\Admin\InvoiceController;
+use App\Http\Controllers\Admin\NotificationController;
+use App\Http\Controllers\Admin\OldController;
+use App\Http\Controllers\Admin\PartnerController;
+use App\Http\Controllers\Admin\PaySlipController;
+use App\Http\Controllers\Admin\P5060Controller;
+use App\Http\Controllers\Admin\PreviewController;
+use App\Http\Controllers\Admin\ReceiptController;
+use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\ServicefeeController;
+use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\VisaController;
+use App\Http\Controllers\Admin\VisaApplicationController;
+use App\Http\Controllers\Admin\VisaApplicationProcessController;
+use App\Http\Controllers\Admin\VisaApplicationProcessLogController;
+use App\Http\Controllers\Admin\VisaApplicationProcessStatusController;
+use App\Http\Controllers\Admin\VisaApplicationProcessStatusLogController;
+
+
+use App\Http\Controllers\ImageUploadController;
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\ConfirmPasswordController;
+use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\Auth\ForgotPasswordController;
+use App\Http\Controllers\Auth\ResetPasswordController;
+use App\Http\Controllers\Auth\VerificationController;
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\AppBaseController;
+use App\Http\Controllers\EnquiryCareController;
+use App\Http\Controllers\FinancialAssessmentDocumentController;
+use PhpOffice\PhpSpreadsheet\Calculation\Web\Service;
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -15,31 +72,30 @@
 
 
 Route::name('')->group(function () {
-	Route::get('login', 'Auth\LoginController@showLoginForm')->name('login');
-	Route::post('login', 'Auth\LoginController@prelogin');
-	Route::post('logout', 'Auth\LoginController@logout')->name('logout');
-	Route::get('logout', 'Auth\LoginController@logout')->name('logout');
+    Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
+    Route::post('login', [LoginController::class, 'prelogin']);
+    Route::post('logout', [LoginController::class, 'logout'])->name('logout');
+    Route::get('logout', [LoginController::class, 'logout'])->name('logout');
 });
-Route::post('verify_otp', 'Auth\LoginController@verifyOtp')->name('verify.otp');
+Route::post('verify_otp', [LoginController::class, 'verifyOtp'])->name('verify.otp');
+Route::middleware('admin')->group(function () {
+	Route::get('/home', [DashboardController::class, 'main'])->name('home');
+	Route::get('/settings', [DashboardController::class, 'settings'])->name('settings');
+	Route::post('/settings', [DashboardController::class, 'saveSettings'])->name('settings');
 
-Route::group(['middleware' => 'admin', 'namespace' => 'Admin'], function () {
-	Route::get('/home', 'DashboardController@main')->name('home');
-	Route::get('/settings', 'DashboardController@settings')->name('settings');
-	Route::post('/settings', 'DashboardController@saveSettings')->name('settings');
+	Route::get('/', [DashboardController::class, 'main'])->name('home');
+	Route::get('/blank', [DashboardController::class, 'blank'])->name('blank');
 
-	Route::get('/', 'DashboardController@main')->name('home');
-	Route::get('/blank', 'DashboardController@blank')->name('blank');
-
-	Route::group(['prefix' => 'companyinfo'], function () {
-		Route::get("/edit", "CompanyInfoController@edit")->name('companyinfo.edit');
-		Route::put("/update/{id}", "CompanyInfoController@update")->name('companyinfo.update');
-		Route::put("/update-footnote/{id}", "CompanyInfoController@updateFootnote")->name('companyinfo.update.footnote');
+	Route::prefix('companyinfo')->group(function () {
+		Route::get("/edit", [CompanyInfoController::class, 'edit'])->name('companyinfo.edit');
+		Route::put("/update/{id}", [CompanyInfoController::class, 'update'])->name('companyinfo.update');
+		Route::put("/update-footnote/{id}", [CompanyInfoController::class, 'updateFootnote'])->name('companyinfo.update.footnote');
 	});
 
-	Route::resource("partner", "PartnerController");
+	Route::resource('partner', PartnerController::class);
 	Route::get("/partner/{id}/toggle", "PartnerController@toggle")->name('partner.toggle');
 
-    Route::resource("serviceprovider", "ServiceProviderController");
+    Route::resource("serviceprovider", ServiceProviderController::class);
     Route::get("/serviceprovider/{id}/toggle", "ServiceProviderController@toggle")->name('serviceprovider.toggle');
     Route::get('serviceproviders/data', [ServiceProviderController::class, 'getServiceProvidersData'])->name('serviceproviders.data');
 
@@ -64,12 +120,12 @@ Route::group(['middleware' => 'admin', 'namespace' => 'Admin'], function () {
 	});
 
 
-	Route::resource("companybranch", 'CompanyBranchController');
-	Route::resource("companydocument", "CompanyDocumentController");
-	Route::resource("communicationlog", "CommunicationLogController")->only('show', 'destroy', 'index');
-	Route::resource("advisor", "AdvisorController");
-	Route::resource("servicefee", "ServicefeeController");
-	Route::resource('user', "UserController");
+	Route::resource("companybranch", CompanyBranchController::class);
+	Route::resource("companydocument", CompanyDocumentController::class);
+	Route::resource("communicationlog", CommunicationLogController::class)->only('show', 'destroy', 'index');
+	Route::resource("advisor", AdvisorController::class);
+	Route::resource("servicefee", ServicefeeController::class);
+	Route::resource('user', UserController::class);
 
 
 
@@ -517,7 +573,7 @@ Route::group(['middleware' => 'admin', 'namespace' => 'Admin'], function () {
 
 // routes/web.php
 Route::post('/upload-image', [ImageUploadController::class, 'upload'])->name('upload.image');
-Route::get("/storage/{file}", "HomeController@getDownload")->name('storageurl');
-Route::get("housekeeping", "HomeController@work");
+Route::get("/storage/{file}", [HomeController::class, 'getDownload'])->name('storageurl');
+Route::get("housekeeping", [HomeController::class, 'work']);
 
 

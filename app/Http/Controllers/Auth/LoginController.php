@@ -9,9 +9,9 @@ use App\Providers\RouteServiceProvider;
 use App\User;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
 use Illuminate\Http\Request;
-use Auth;
+use Illuminate\Support\Facades\Auth;
 use Cookie;
-use Carbon;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Mail;
 
 class LoginController extends Controller

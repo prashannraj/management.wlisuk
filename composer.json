@@ -10,6 +10,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "anlutro/l4-settings": "^1.4",
         "barryvdh/laravel-dompdf": "^3.1",
         "doctrine/dbal": "^4.2",
         "guzzlehttp/guzzle": "^7.9",

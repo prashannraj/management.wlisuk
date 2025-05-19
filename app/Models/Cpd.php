@@ -3,10 +3,10 @@
 namespace App\Models;
 
 use Carbon\Carbon;
-use Collective\Html\Eloquent\FormAccessible;
+// use Collective\Html\Eloquent\FormAccessible;
 use Spatie\MediaLibrary\HasMedia;
-use Eloquent as Model;
-use PDF;
+use Illuminate\Database\Eloquent\Model;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
 /**
@@ -25,7 +25,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  */
  class Cpd extends Model implements HasMedia
 {
-    use FormAccessible;
+    // use FormAccessible;
     use InteractsWithMedia;
     public $table = 'cpds';
     
@@ -91,28 +91,28 @@ use Spatie\MediaLibrary\InteractsWithMedia;
     public function getPeriodFromFormattedAttribute()
     {
         
-        return $this->period_from->format(config('constant.cpd_date_format'));
+        return Carbon::parse($this->period_from)->format(config('constant.cpd_date_format'));
     }
 
 
     public function getPeriodToFormattedAttribute()
     {
         
-        return $this->period_to->format(config('constant.cpd_date_format'));
+        return Carbon::parse($this->period_to)->format(config('constant.cpd_date_format'));
     }
 
 
     public function formPeriodFromAttribute()
     {
         
-        return $this->period_from->format(config('constant.cpd_date_format'));
+        return Carbon::parse($this->period_from)->format(config('constant.cpd_date_format'));
     }
 
 
     public function formPeriodToAttribute()
     {
         
-        return $this->period_to->format(config('constant.cpd_date_format'));
+        return Carbon::parse($this->period_to)->format(config('constant.cpd_date_format'));
     }
 
     public function details(){
@@ -125,7 +125,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 
         $this->clearMediaCollection("pdf");
         $data['company'] = CompanyInfo::first();
-        $pdf = PDF::loadView("cpds.pdf",compact('data'));
+        $pdf = Pdf::loadView("cpds.pdf",compact('data'));
         $filename = "CPD Report";
         $file_path = storage_path('app/temp/'). $filename.".pdf";
         $pdf->save($file_path);
