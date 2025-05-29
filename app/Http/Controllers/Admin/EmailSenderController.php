@@ -7,7 +7,7 @@ use App\Http\Requests\UpdateEmailSenderRequest;
 use App\Http\Controllers\AppBaseController;
 use App\Models\EmailSender;
 use Illuminate\Http\Request;
-use Flash;
+use Laracasts\Flash\Flash;
 use Response;
 
 class EmailSenderController extends AppBaseController
