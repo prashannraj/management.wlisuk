@@ -9,6 +9,8 @@ use App\Models\ImmigrationApplication;
 use App\Models\Invoice;
 use App\Models\Visa;
 
+
+
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -61,7 +63,11 @@ class DashboardController extends Controller
         
         $visaapp[] = Visa::whereStatus('Active')->where("basic_info_id","!=",null)->where("expiry_date","=",Carbon::now())->count();
 
-        $d = DB::table('immigration_application_processes')->select(DB::raw('reason','count("*") as count'))->where('application_status_id',5)->get()->groupBy('reason');
+        $d = DB::table('immigration_application_processes')
+                ->select('reason', DB::raw('count(*) as count')) // ✅ सही
+                ->where('application_status_id', 5)
+                ->groupBy('reason')
+                ->get();
         $data['fileData'] = array();
         $data['fileLabels'] = array();
 
@@ -69,7 +75,7 @@ class DashboardController extends Controller
 
 
         foreach($d as $key=>$value){
-            $data['fileData'][]  = $value->count();
+            $data['fileData'][]  = $value->count;
             $data['fileLabels'][] = $key==""?"Unknown":$key;
         }
         $data['visa_data']=collect($visaapp);

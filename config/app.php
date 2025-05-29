@@ -123,8 +123,11 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
-    'aliases' => [
+   
+'aliases' => [
+    'Session' => Illuminate\Support\Facades\Session::class,
     'Setting' => Anlutro\LaravelSettings\Facade::class,
+    'PDF' => Barryvdh\DomPDF\Facade\Pdf::class,
 ],
 
 

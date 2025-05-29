@@ -37,14 +37,20 @@
   <script src="{{ asset('assets/vendor/js-cookie/js.cookie.js') }}"></script>
   <script src="{{ asset('assets/js/argon.js?v=1.2.0') }}"></script>
   <script>
-    document.getElementById('title').addEventListener('change', function() {
-        const otherTitleInput = document.getElementById('other_title');
-        if (this.value === 'Other') {
-            otherTitleInput.style.display = 'block';
-        } else {
-            otherTitleInput.style.display = 'none';
+        document.addEventListener('DOMContentLoaded', function () {
+        const titleInput = document.getElementById('title');
+        if (titleInput) {
+            titleInput.addEventListener('change', function() {
+                const otherTitleInput = document.getElementById('other_title');
+                if (this.value === 'Other') {
+                    otherTitleInput.style.display = 'block';
+                } else {
+                    otherTitleInput.style.display = 'none';
+                }
+            });
         }
     });
+
 
 
 

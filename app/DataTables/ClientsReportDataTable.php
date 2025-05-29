@@ -9,7 +9,7 @@ use Yajra\DataTables\Html\Column;
 use Yajra\DataTables\Html\Editor\Editor;
 use Yajra\DataTables\Html\Editor\Fields;
 use Yajra\DataTables\Services\DataTable;
-use PDF;
+use Barryvdh\DomPDF\Facade\Pdf;
 class ClientsReportDataTable extends DataTable
 {
     /**
@@ -29,7 +29,7 @@ class ClientsReportDataTable extends DataTable
     /**
      * Get query source of dataTable.
      *
-     * @param \App\User $model
+     * @param \App\Models\User $model
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function query(BasicInfo $model)
@@ -82,20 +82,27 @@ class ClientsReportDataTable extends DataTable
      * @return \Yajra\DataTables\Html\Builder
      */
     public function html()
-    {
-        $js = "data.visa_expiry = $('select[name=visa_expiry]').val();";
+        {
+            $js = "data.visa_expiry = $('select[name=visa_expiry]').val();";
 
-        return $this->builder()
-            ->setTableId('clientsreport-table')
-            ->columns($this->getColumns())
-            ->minifiedAjax(null, $js)
-            ->dom('Bfrtip')
-            ->orderBy(1)
-            ->buttons(
-                Button::make('pdf')->text('Export to PDF'),
-                Button::make('csv')->text('Export to CSV')
-            );
-    }
+            return $this->builder()
+                ->setTableId('clientsreport-table')
+                ->columns($this->getColumns())
+                ->minifiedAjax('', $js)
+                ->orderBy(1)
+                ->buttons(
+                    Button::make('pdf')->text('Export to PDF'),
+                    Button::make('csv')->text('Export to CSV')
+                )
+                ->parameters([
+                    'dom' => 'Bfrtip',
+                    'responsive' => true,
+                    'processing' => true,
+                    'serverSide' => true,
+                    'buttons' => ['copy', 'csv', 'excel', 'pdf', 'print'],
+                ]);
+        }
+
 
     /**
      * Get columns.
@@ -126,10 +133,11 @@ class ClientsReportDataTable extends DataTable
      *
      * @return string
      */
-    protected function filename()
-    {
-        return 'clients_' . date('YmdHis');
-    }
+   public function filename(): string
+        {
+            return 'Clients_' . date('YmdHis');
+        }
+
 
     public function pdf()
     {
@@ -139,7 +147,7 @@ class ClientsReportDataTable extends DataTable
         	$title.= " - {$this->startdate} to {$this->enddate}";
         }
 
-        return PDF::loadView($this->printPreview,compact('data','title'))->download($this->getFilename() . '.pdf');
-    //    return PDF::loadView($this->printPreview, compact('data','title'))->stream();
+        return Pdf::loadView($this->printPreview,compact('data','title'))->download($this->getFilename() . '.pdf');
+    //    return Pdf::loadView($this->printPreview, compact('data','title'))->stream();
     }
 }

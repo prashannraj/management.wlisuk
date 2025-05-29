@@ -5,7 +5,7 @@ namespace App\Models;
 use App\ClientCare;
 use App\CclApplication;
 use App\LetterOfAuthority;
-use App\User;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Config;
 

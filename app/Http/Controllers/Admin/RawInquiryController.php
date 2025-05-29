@@ -12,7 +12,7 @@ use App\Models\EnquiryActivity;
 use App\Models\EnquiryType;
 use App\Models\IsoCountry;
 use App\Models\RawInquiry;
-use App\User;
+use App\Models\User;
 use Illuminate\Contracts\Session\Session;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;

@@ -18,7 +18,7 @@ use App\NewCcl;
 use Session;
 use DataTables;
 use App\Models\Enquiry;
-use App\User;
+use App\Models\User;
 use App\Models\EnquiryType;
 use App\Models\Visa;
 use Illuminate\Http\Request;

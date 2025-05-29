@@ -12,7 +12,7 @@ use App\Models\IsoCountry;
 use App\Models\RawInquiry;
 use App\Notifications\NewEnquiryAlert;
 use App\Rules\GoogleRecaptcha;
-use App\User;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;

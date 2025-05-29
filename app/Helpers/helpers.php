@@ -7,7 +7,7 @@ use App\Models\Visa;
 use App\Notifications\ClientVisaExpiryAlert;
 use App\Notifications\EmployeeVisaExpiryAlert;
 use App\Notifications\FollowUpAlert;
-use App\User;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Schema;

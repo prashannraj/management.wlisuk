@@ -1,0 +1,7 @@
+.smaller{
+    font-size:smaller;
+}
+
+.modal-dialog {
+    z-index: 1000;
+  }

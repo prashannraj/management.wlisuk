@@ -1,0 +1,108 @@
+
+.bg-aqua-gradient {
+	line-height:1;
+	padding:5px 0px;
+	border-radius: .25rem;
+	background: rgba(127, 219, 255, 1);
+	background: -webkit-linear-gradient(top, rgba(127, 219, 255, 1) 0%, rgba(82, 140, 163, 1) 100%);
+	background: linear-gradient(to bottom, rgba(127, 219, 255, 1) 0%, rgba(82, 140, 163, 1) 100%)
+}
+
+.bg-blue-gradient {
+	line-height:1;
+	padding:5px 0px;
+	border-radius: .25rem;
+	background: rgb(109,213,237);
+	background: linear-gradient(top, rgba(109,213,237,1) 0%, rgba(33,147,176,1) 100%);
+	background: -webkit-linear-gradient(top, rgba(109,213,237,1) 0%, rgba(33,147,176,1) 100%);
+}
+
+.bg-navy-gradient {
+	line-height:1;
+	padding:5px 0px;
+	border-radius: .25rem;
+	background: rgba(0, 32, 63, 1);
+	background: -webkit-linear-gradient(top, rgba(0, 32, 63, 1) 0%, rgba(0, 10, 20, 1) 100%);
+	background: linear-gradient(to bottom, rgba(0, 32, 63, 1) 0%, rgba(0, 10, 20, 1) 100%)
+}
+
+.bg-teal-gradient {
+	line-height:1;
+	padding:5px 0px;
+	border-radius: .25rem;
+	background: rgba(57, 204, 204, 1);
+	background: -webkit-linear-gradient(top, rgba(57, 204, 204, 1) 0%, rgba(34, 122, 122, 1) 100%);
+	background: linear-gradient(to bottom, rgba(57, 204, 204, 1) 0%, rgba(34, 122, 122, 1) 100%)
+}
+
+.bg-green-gradient {
+	line-height:1;
+	padding:5px 0px;
+	border-radius: .25rem;
+	background: rgba(46, 204, 64, 1);
+	background: -webkit-linear-gradient(top, rgba(46, 204, 64, 1) 0%, rgba(28, 122, 39, 1) 100%);
+	background: linear-gradient(to bottom, rgba(46, 204, 64, 1) 0%, rgba(28, 122, 39, 1) 100%)
+}
+
+.bg-lime-gradient {
+	line-height:1;
+	padding:5px 0px;
+	border-radius: .25rem;
+	background: rgba(1, 255, 111, 1);
+	background: -webkit-linear-gradient(top, rgba(1, 255, 111, 1) 0%, rgba(2, 163, 72, 1) 100%);
+	background: linear-gradient(to bottom, rgba(1, 255, 111, 1) 0%, rgba(2, 163, 72, 1) 100%)
+}
+
+.bg-yellow-gradient {
+	line-height:1;
+	padding:5px 0px;
+	border-radius: .25rem;
+	background: rgba(255, 221, 0, 1);
+	background: -webkit-linear-gradient(top, rgba(255, 221, 0, 1) 0%, rgba(184, 147, 0, 1) 100%);
+	background: linear-gradient(to bottom, rgba(255, 221, 0, 1) 0%, rgba(184, 147, 0, 1) 100%)
+}
+
+.bg-orange-gradient {
+	line-height:1;
+	padding:5px 0px;
+	border-radius: .25rem;
+	background: rgba(255, 133, 27, 1);
+	background: -webkit-linear-gradient(top, rgba(255, 133, 27, 1) 0%, rgba(255, 80, 27, 1) 100%);
+	background: linear-gradient(to bottom, rgba(255, 133, 27, 1) 0%, rgba(255, 80, 27, 1) 100%)
+}
+
+.bg-red-gradient {
+	line-height:1;
+	padding:5px 0px;
+	border-radius: .25rem;
+	background: rgba(246, 46, 36, 1);
+	background: -webkit-linear-gradient(top, rgba(246, 46, 36, 1) 0%, rgba(255, 54, 121, 1) 100%);
+	background: linear-gradient(to bottom, rgba(246, 46, 36, 1) 0%, rgba(255, 54, 121, 1) 100%)
+}
+
+.bg-fuchsia-gradient {
+	line-height:1;
+	padding:5px 0px;
+	border-radius: .25rem;
+	background: rgba(240, 18, 188, 1);
+	background: -webkit-linear-gradient(top, rgba(240, 18, 188, 1) 0%, rgba(163, 11, 128, 1) 100%);
+	background: linear-gradient(to bottom, rgba(240, 18, 188, 1) 0%, rgba(163, 11, 128, 1) 100%)
+}
+
+.bg-purple-gradient {
+	line-height:1;
+	padding:5px 0px;
+	border-radius: .25rem;
+	background: rgba(176, 13, 201, 1);
+	background: -webkit-linear-gradient(top, rgba(176, 13, 201, 1) 0%, rgba(107, 7, 122, 1) 100%);
+	background: linear-gradient(to bottom, rgba(176, 13, 201, 1) 0%, rgba(107, 7, 122, 1) 100%)
+}
+
+.bg-maroon-gradient {
+	line-height:1;
+	padding:5px 0px;
+	border-radius: .25rem;
+	background: rgba(204, 31, 115, 1);
+	background: -webkit-linear-gradient(top, rgba(204, 31, 115, 1) 0%, rgba(133, 20, 75, 1) 100%);
+	background: linear-gradient(to bottom, rgba(204, 31, 115, 1) 0%, rgba(133, 20, 75, 1) 100%)
+}

@@ -11,7 +11,7 @@ use App\RequestToFinance;
 use Session;
 use DataTables;
 use App\Models\Enquiry;
-use App\User;
+use App\Models\User;
 use App\Models\EnquiryType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;

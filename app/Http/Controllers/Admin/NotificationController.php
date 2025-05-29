@@ -10,7 +10,7 @@ use App\Notifications\ClientVisaExpiryAlert;
 use Illuminate\Support\Facades\Schema;
 use App\Notifications\FollowUpAlert;
 use App\Notifications\NewEnquiryAlert;
-use App\User;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;

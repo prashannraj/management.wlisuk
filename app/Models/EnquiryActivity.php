@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use App\User;
-use Config;
+use App\Models\User;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Database\Eloquent\Model;
 
 class EnquiryActivity extends Model

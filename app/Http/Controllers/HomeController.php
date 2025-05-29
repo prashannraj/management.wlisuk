@@ -7,7 +7,7 @@ use App\Models\EnquiryFollowUp;
 use App\Models\ImmigrationApplication;
 use App\Models\Role;
 use App\Notifications\FollowUpAlert;
-use App\User;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;

@@ -2,7 +2,7 @@
 @if(\Session::has('success'))
     $.notify({
         icon: 'far fa-check-circle p-2 fa-1x',
-        message: '{!! Session::get('success') !!}',
+        message: '{{ \Session::get("success") }}',
     },{
         type: 'success',
         placement: {
@@ -11,20 +11,19 @@
         },
     });
     @php
-    Session::forget('success');
+        \Session::forget('success');
     @endphp
 @endif
 
-@if(Session::has('failed'))
+@if(\Session::has('failed'))
     $.notify({
         icon: 'fas fa-info-circle p-2 fa-1x',
-        message: '{!! Session::get('failed') !!}',
+        message: '{{ \Session::get("failed") }}',
     },{
         type: 'warning'
     });
     @php
-        Session::forget('failed');
+        \Session::forget('failed');
     @endphp
 @endif
 </script>
-
