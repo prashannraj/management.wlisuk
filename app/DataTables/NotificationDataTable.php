@@ -4,10 +4,7 @@ namespace App\DataTables;
 
 use Yajra\DataTables\Html\Button;
 use Yajra\DataTables\Html\Column;
-use Yajra\DataTables\Html\Editor\Editor;
-use Yajra\DataTables\Html\Editor\Fields;
 use Yajra\DataTables\Services\DataTable;
-use Illuminate\Support\Facades\Auth;
 
 class NotificationDataTable extends DataTable
 {
@@ -27,13 +24,14 @@ class NotificationDataTable extends DataTable
     /**
      * Get query source of dataTable.
      *
-     * @param \App\Models\NotificationDataTable $model
+     * @param \Illuminate\Database\Eloquent\Model $model
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function query($model)
     {
-        $query = Auth::user()->notifications()->getQuery();
-        return $query;
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+        return $user->notifications()->getQuery(); // Corrected line for Intelephense
     }
 
     /**
@@ -44,21 +42,21 @@ class NotificationDataTable extends DataTable
     public function html()
     {
         return $this->builder()
-                    ->setTableId('notification-table')
-                    ->columns($this->getColumns())
-                    ->minifiedAjax()
-                    ->orderBy(1)
-                    ->buttons(
-                    Button::make('pdf')->text('Export to PDF'),
-                    Button::make('csv')->text('Export to CSV')
-                )
-                ->parameters([
-                    'dom' => 'Bfrtip',
-                    'responsive' => true,
-                    'processing' => true,
-                    'serverSide' => true,
-                    'buttons' => ['copy', 'csv', 'excel', 'pdf', 'print'],
-                ]);
+            ->setTableId('notification-table')
+            ->columns($this->getColumns())
+            ->minifiedAjax()
+            ->orderBy(1)
+            ->buttons(
+                Button::make('csv')->text('Export to CSV'),
+                Button::make('pdf')->text('Export to PDF')
+            )
+            ->parameters([
+                'dom' => 'Bfrtip',
+                'responsive' => true,
+                'processing' => true,
+                'serverSide' => true,
+                'buttons' => ['copy', 'csv', 'excel', 'pdf', 'print'],
+            ]);
     }
 
     /**
