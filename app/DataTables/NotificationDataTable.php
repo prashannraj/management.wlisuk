@@ -7,6 +7,7 @@ use Yajra\DataTables\Html\Column;
 use Yajra\DataTables\Html\Editor\Editor;
 use Yajra\DataTables\Html\Editor\Fields;
 use Yajra\DataTables\Services\DataTable;
+use Illuminate\Support\Facades\Auth;
 
 class NotificationDataTable extends DataTable
 {
@@ -31,7 +32,7 @@ class NotificationDataTable extends DataTable
      */
     public function query($model)
     {
-        $query = auth()->user()->notifications();
+        $query = Auth::user()->notifications()->getQuery();
         return $query;
     }
 
@@ -46,11 +47,18 @@ class NotificationDataTable extends DataTable
                     ->setTableId('notification-table')
                     ->columns($this->getColumns())
                     ->minifiedAjax()
-                    ->dom('Bfrtip')
                     ->orderBy(1)
                     ->buttons(
-                        Button::make('')
-                    );
+                    Button::make('pdf')->text('Export to PDF'),
+                    Button::make('csv')->text('Export to CSV')
+                )
+                ->parameters([
+                    'dom' => 'Bfrtip',
+                    'responsive' => true,
+                    'processing' => true,
+                    'serverSide' => true,
+                    'buttons' => ['copy', 'csv', 'excel', 'pdf', 'print'],
+                ]);
     }
 
     /**
@@ -75,7 +83,7 @@ class NotificationDataTable extends DataTable
      *
      * @return string
      */
-    protected function filename()
+    protected function filename(): string
     {
         return 'Notification_' . date('YmdHis');
     }

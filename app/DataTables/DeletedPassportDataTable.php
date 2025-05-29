@@ -10,6 +10,7 @@ use Yajra\DataTables\Html\Column;
 use Yajra\DataTables\Html\Editor\Editor;
 use Yajra\DataTables\Html\Editor\Fields;
 use Yajra\DataTables\Services\DataTable;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class DeletedPassportDataTable extends DataTable
 {
@@ -75,12 +76,18 @@ class DeletedPassportDataTable extends DataTable
             ->setTableId('deletepassports-table')
             ->columns($this->getColumns())
             ->minifiedAjax(route('delete.passports'), $js)
-            ->dom('Bfrtip')
             ->orderBy(3)
             ->buttons(
-                Button::make('pdf')->text('Export to PDF'),
-                Button::make('csv')->text('Export to CSV')
-            );
+                    Button::make('pdf')->text('Export to PDF'),
+                    Button::make('csv')->text('Export to CSV')
+                )
+                ->parameters([
+                    'dom' => 'Bfrtip',
+                    'responsive' => true,
+                    'processing' => true,
+                    'serverSide' => true,
+                    'buttons' => ['copy', 'csv', 'excel', 'pdf', 'print'],
+                ]);
     }
 
     /**
@@ -111,7 +118,7 @@ class DeletedPassportDataTable extends DataTable
      *
      * @return string
      */
-    protected function filename()
+    protected function filename(): string
     {
         return 'clients_' . date('YmdHis');
     }
@@ -123,7 +130,7 @@ class DeletedPassportDataTable extends DataTable
         if($this->startdate && $this->enddate){
         	$title.= " - {$this->startdate} to {$this->enddate}";
         }
-
+        return Pdf::loadView($this->printPreview,compact('data','title'))->download($this->getFilename() . '.pdf');
         return PDF::loadView($this->printPreview,compact('data','title'))->download($this->getFilename() . '.pdf');
     //    return PDF::loadView($this->printPreview, compact('data','title'))->stream();
     }

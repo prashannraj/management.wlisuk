@@ -12,7 +12,7 @@ use Yajra\DataTables\Html\Column;
 use Yajra\DataTables\Html\Editor\Editor;
 use Yajra\DataTables\Html\Editor\Fields;
 use Yajra\DataTables\Services\DataTable;
-use PDF;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ReceiptReportDataTable extends DataTable
 {
@@ -63,12 +63,19 @@ class ReceiptReportDataTable extends DataTable
         return $this->builder()
             ->setTableId('report-table-receipt')
             ->columns($this->getColumns())
-            ->minifiedAjax(null,$js)
-            ->dom('Bfrtip')
+            ->minifiedAjax(route('your.route.name'), $js)
             ->orderBy(1)
             ->buttons(
-               [ Button::make('pdf')->text('Export to PDF'),Button::make('csv')->text('Export to CSV')]
-            );
+                    Button::make('pdf')->text('Export to PDF'),
+                    Button::make('csv')->text('Export to CSV')
+                )
+                ->parameters([
+                    'dom' => 'Bfrtip',
+                    'responsive' => true,
+                    'processing' => true,
+                    'serverSide' => true,
+                    'buttons' => ['copy', 'csv', 'excel', 'pdf', 'print'],
+                ]);
     }
 
     /**
@@ -95,7 +102,7 @@ class ReceiptReportDataTable extends DataTable
      *
      * @return string
      */
-    protected function filename()
+    protected function filename(): string
     {
         return 'Receipt Report_' . date('d-m-Y H:i');
     }
@@ -106,7 +113,7 @@ class ReceiptReportDataTable extends DataTable
         $data = $this->getDataForPrint();
         $title = "Receipt Report";
 
-        return PDF::loadView($this->printPreview,compact('data','title'))->download($this->getFilename() . '.pdf');
+        return Pdf::loadView($this->printPreview,compact('data','title'))->download($this->getFilename() . '.pdf');
     //    return PDF::loadView($this->printPreview, compact('data','title'))->stream();
     }
 }

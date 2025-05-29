@@ -7,6 +7,7 @@ use Yajra\DataTables\Html\Button;
 use Yajra\DataTables\Html\Column;
 
 use Yajra\DataTables\Services\DataTable;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class DeletedEmployeeDataTable extends DataTable
 {
@@ -71,12 +72,18 @@ class DeletedEmployeeDataTable extends DataTable
             ->setTableId('deletededemployees-table')
             ->columns($this->getColumns())
             ->minifiedAjax(route('delete.employees'), $js)
-            ->dom('Bfrtip')
             ->orderBy(2)
             ->buttons(
-                Button::make('pdf')->text('Export to PDF'),
-                Button::make('csv')->text('Export to CSV')
-            );
+                    Button::make('pdf')->text('Export to PDF'),
+                    Button::make('csv')->text('Export to CSV')
+                )
+                ->parameters([
+                    'dom' => 'Bfrtip',
+                    'responsive' => true,
+                    'processing' => true,
+                    'serverSide' => true,
+                    'buttons' => ['copy', 'csv', 'excel', 'pdf', 'print'],
+                ]);
     }
 
     /**
@@ -106,7 +113,7 @@ class DeletedEmployeeDataTable extends DataTable
      *
      * @return string
      */
-    protected function filename()
+    protected function filename(): string
     {
         return 'employees_' . date('YmdHis');
     }
@@ -118,7 +125,7 @@ class DeletedEmployeeDataTable extends DataTable
         if($this->startdate && $this->enddate){
         	$title.= " - {$this->startdate} to {$this->enddate}";
         }
-
+        return Pdf::loadView($this->printPreview,compact('data','title'))->download($this->getFilename() . '.pdf');
         return PDF::loadView($this->printPreview,compact('data','title'))->download($this->getFilename() . '.pdf');
     //    return PDF::loadView($this->printPreview, compact('data','title'))->stream();
     }

@@ -72,7 +72,7 @@ class ImmigrationApplicationDataTable extends DataTable
         return $this->builder()
                     ->setTableId('immigrationapplication-table')
                     ->columns($this->getColumns())
-                    ->minifiedAjax(null, $js)
+                    ->minifiedAjax('', $js)
                     
                     
                     ->orderBy(1);
@@ -103,7 +103,7 @@ class ImmigrationApplicationDataTable extends DataTable
      *
      * @return string
      */
-    protected function filename()
+    protected function filename(): string
     {
         return 'ImmigrationApplication_' . date('YmdHis');
     }

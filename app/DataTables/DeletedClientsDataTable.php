@@ -8,6 +8,7 @@ use Yajra\DataTables\Html\Column;
 use Yajra\DataTables\Html\Editor\Editor;
 use Yajra\DataTables\Html\Editor\Fields;
 use Yajra\DataTables\Services\DataTable;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class DeletedClientsDataTable extends DataTable
 {
@@ -72,12 +73,18 @@ class DeletedClientsDataTable extends DataTable
             ->setTableId('deletedclients-table')
             ->columns($this->getColumns())
             ->minifiedAjax(route('delete.clients'), $js)
-            ->dom('Bfrtip')
             ->orderBy(3)
-            ->buttons(
-                Button::make('pdf')->text('Export to PDF'),
-                Button::make('csv')->text('Export to CSV')
-            );
+                ->buttons(
+                    Button::make('pdf')->text('Export to PDF'),
+                    Button::make('csv')->text('Export to CSV')
+                )
+                ->parameters([
+                    'dom' => 'Bfrtip',
+                    'responsive' => true,
+                    'processing' => true,
+                    'serverSide' => true,
+                    'buttons' => ['copy', 'csv', 'excel', 'pdf', 'print'],
+                ]);
     }
 
     /**
@@ -109,7 +116,7 @@ class DeletedClientsDataTable extends DataTable
      *
      * @return string
      */
-    protected function filename()
+    protected function filename(): string
     {
         return 'clients_' . date('YmdHis');
     }

@@ -10,8 +10,8 @@ use Yajra\DataTables\Html\Column;
 use Yajra\DataTables\Html\Editor\Editor;
 use Yajra\DataTables\Html\Editor\Fields;
 use Yajra\DataTables\Services\DataTable;
-use PDF;
-use DB;
+use Barryvdh\DomPDF\Facade\Pdf as PDF;
+use Illuminate\Support\Facades\DB;
 
 class VisaReportDataTable extends DataTable
 {
@@ -105,14 +105,19 @@ class VisaReportDataTable extends DataTable
         return $this->builder()
             ->setTableId('visareport-table')
             ->columns($this->getColumns())
-            ->minifiedAjax(null, $js)
-            ->dom('Bfrtip')
+            ->minifiedAjax('', $js)
             ->orderBy(1)
-            ->buttons(
-                Button::make('pdf')->text('Export to PDF'),
-                Button::make('csv')->text('Export to CSV'),
-
-            );
+             ->buttons(
+                    Button::make('pdf')->text('Export to PDF'),
+                    Button::make('csv')->text('Export to CSV')
+                )
+                ->parameters([
+                    'dom' => 'Bfrtip',
+                    'responsive' => true,
+                    'processing' => true,
+                    'serverSide' => true,
+                    'buttons' => ['copy', 'csv', 'excel', 'pdf', 'print'],
+                ]);
     }
 
     /**
@@ -143,7 +148,7 @@ class VisaReportDataTable extends DataTable
      *
      * @return string
      */
-    protected function filename()
+    protected function filename(): string
     {
         return 'clients_visas_' . date('YmdHis');
     }

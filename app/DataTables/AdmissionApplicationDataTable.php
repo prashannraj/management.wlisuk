@@ -60,7 +60,7 @@ class AdmissionApplicationDataTable extends DataTable
         return $this->builder()
                     ->setTableId('admissionapplication-table')
                     ->columns($this->getColumns())
-                    ->minifiedAjax(null, $js)
+                    ->minifiedAjax(route('admissionapplication.index'), $js)
                     
                     
                     ->orderBy(1);
@@ -96,7 +96,7 @@ class AdmissionApplicationDataTable extends DataTable
      *
      * @return string
      */
-    protected function filename()
+    protected function filename(): string
     {
         return 'AdmissionApplication_' . date('YmdHis');
     }

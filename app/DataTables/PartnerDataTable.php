@@ -62,8 +62,7 @@ class PartnerDataTable extends DataTable
         return $this->builder()
             ->setTableId('partner-table')
             ->columns($this->getColumns())
-            ->minifiedAjax(null, $js)
-            ->dom('Bfrtip')
+            ->minifiedAjax('', $js)
             ->orderBy(1)
             ->buttons(
                 Button::make('create'),
@@ -95,7 +94,7 @@ class PartnerDataTable extends DataTable
      *
      * @return string
      */
-    protected function filename()
+    protected function filename(): string
     {
         return 'Partner_' . date('YmdHis');
     }

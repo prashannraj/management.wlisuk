@@ -53,12 +53,19 @@ class ServicefeeDataTable extends DataTable
         return $this->builder()
                     ->setTableId('servicefee-table')
                     ->columns($this->getColumns())
-                    ->minifiedAjax(null,$js)
-                    ->dom('Bfrtip')
+                    ->minifiedAjax('',$js)
                     ->orderBy(1)
                     ->buttons(
-                        Button::make('pdf')
-                    );
+                    Button::make('pdf')->text('Export to PDF'),
+                    Button::make('csv')->text('Export to CSV')
+                )
+                ->parameters([
+                    'dom' => 'Bfrtip',
+                    'responsive' => true,
+                    'processing' => true,
+                    'serverSide' => true,
+                    'buttons' => ['copy', 'csv', 'excel', 'pdf', 'print'],
+                ]);
     }
 
     /**
@@ -89,7 +96,7 @@ class ServicefeeDataTable extends DataTable
      *
      * @return string
      */
-    protected function filename()
+    protected function filename(): string
     {
         return 'Servicefee_' . date('YmdHis');
     }

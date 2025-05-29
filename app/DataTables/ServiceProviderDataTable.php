@@ -70,14 +70,21 @@ class ServiceProviderDataTable extends DataTable
         ->columns($this->getColumns())
         ->ajax(route('ajax.serviceprovider.index'))  // Use the correct AJAX route here
         ->minifiedAjax()
-        ->dom('Bfrtip')
         ->orderBy(1)
-        ->buttons(
-
-            Button::make('create'),
-            Button::make('reload'),
-            Button::make('csv')->text('Export to CSV')
-        );
+         ->buttons(
+                    Button::make('create'),
+                    Button::make('reload'),
+                    Button::make('pdf')->text('Export to PDF'),
+                    Button::make('csv')->text('Export to CSV')
+                )
+                ->parameters([
+                    'dom' => 'Bfrtip',
+                    'responsive' => true,
+                    'processing' => true,
+                    'serverSide' => true,
+                    'buttons' => ['copy', 'csv', 'excel', 'pdf', 'print'],
+                ]);
+        
 }
 
 
@@ -111,7 +118,7 @@ class ServiceProviderDataTable extends DataTable
      *
      * @return string
      */
-    protected function filename()
+    protected function filename(): string
     {
         return 'ServiceProvider_' . date('YmdHis');
     }
