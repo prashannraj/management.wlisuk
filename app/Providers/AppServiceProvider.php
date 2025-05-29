@@ -6,6 +6,9 @@ use App\Models\BasicInfo;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View; // ⬅️ Import View
 use Illuminate\Support\ServiceProvider;
+use App\Repositories\Enquiry\EnquiryInterface;
+use App\Repositories\Enquiry\EnquiryRepository;
+
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -16,7 +19,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        //
+        $this->app->bind(EnquiryInterface::class, EnquiryRepository::class);
     }
 
     /**

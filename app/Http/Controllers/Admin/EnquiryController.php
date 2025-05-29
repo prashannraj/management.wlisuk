@@ -8,8 +8,7 @@ use App\LetterOfAuthority;
 use App\LetterToFirms;
 use App\RequestToMedical;
 use App\RequestToFinance;
-use Session;
-use DataTables;
+use Yajra\DataTables\Facades\DataTables;
 use App\Models\Enquiry;
 use App\Models\User;
 use App\Models\EnquiryType;
@@ -36,10 +35,14 @@ use App\Repositories\Enquiry\EnquiryInterface as EnquiryInterface;
 use Carbon\Carbon;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Mail;
-use PDF;
+use Illuminate\Support\Facades\Session;
+use Barryvdh\DomPDF\Facade\Pdf as PDF;
+use Exception;
+
 
 class EnquiryController extends BaseController
 {
+    private $enquiry;
     private $title;
     private $country_code;
     private $enquiry_type;
@@ -204,13 +207,20 @@ class EnquiryController extends BaseController
             $result = $this->enquiry->save($data);
             if ($result) {
 
-                ClientAddressDetail::updateOrCreate(['enquiry_id' => $result, 'basic_info_id' => null], [
-                    'overseas_address' => $request->address,
-                    'overseas_postcode' => $request->postal_code,
-                    'iso_countrylist_id' => $request->country_id,
-                    'created_by' => auth()->user()->id,
-                    'modified_by' => auth()->user()->id
-                ]);
+                /** @var \Illuminate\Contracts\Auth\Authenticatable|null $user */
+                $user = Auth::user();
+
+                ClientAddressDetail::updateOrCreate(
+                    ['enquiry_id' => $result, 'basic_info_id' => null],
+                    [
+                        'overseas_address' => $request->address,
+                        'overseas_postcode' => $request->postal_code,
+                        'iso_countrylist_id' => $request->country_id,
+                        'created_by' => $user ? $user->id : null,
+                        'modified_by' => $user ? $user->id : null,
+                    ]
+                );
+
 
 
                 Session::flash('success', 'Enquiry has been created.');
@@ -301,8 +311,8 @@ class EnquiryController extends BaseController
                 'overseas_address' => $request->address,
                 'overseas_postcode' => $request->postal_code,
                 'iso_countrylist_id' => $request->country_id,
-                'created_by'=>auth()->user()->id,
-                'modified_by'=>auth()->user()->id
+                'created_by' => Auth::id(),
+                'modified_by' => Auth::id(),
             ]);
             if ($result) {
                 Session::flash('success', 'Enquiry has been updated.');
@@ -453,9 +463,9 @@ class EnquiryController extends BaseController
             'followup_date' => 'nullable|string'
         ]);
 
-        $data['enquiry_list_id'] = $id;
-        $data['created_by'] = auth()->user()->id;
-        $data['modified_by'] = auth()->user()->id;
+       $data['enquiry_list_id'] = $id;
+        $data['created_by'] = Auth::id();
+        $data['modified_by'] = Auth::id();
 
         $en = EnquiryActivity::create($data);
 
@@ -500,8 +510,8 @@ class EnquiryController extends BaseController
         if ($data['followup_date'] != null)
             $data['followup_date'] = (Carbon::createFromFormat(config('constant.date_format'), $data['followup_date'])->format('Y-m-d'));
 
-        $data['created_by'] = auth()->user()->id;
-        $data['modified_by'] = auth()->user()->id;
+        $data['created_by'] = Auth::id();
+        $data['modified_by'] = Auth::id();
 
         $activity->update($data);
         $enq = $activity->enquiry;
@@ -834,7 +844,7 @@ class EnquiryController extends BaseController
 
         //save clientcare
         $cli_data['attachments'] = null;
-        LetterToFirm::updateOrCreate(['enquiry_id' => $id], $cli_data);
+        LetterToFirms::updateOrCreate(['enquiry_id' => $id], $cli_data);
 
         if ($preview) {
             $pdf = PDF::loadView("admin.inquiry.pdf.letter_to_firm", compact('data'));

@@ -47,9 +47,13 @@ use App\Http\Controllers\Admin\VisaApplicationProcessStatusLogController;
 use App\Http\Controllers\Admin\RawInquiryController;
 use App\Http\Controllers\Admin\InvoiceItemController;
 use App\Http\Controllers\Admin\ClientController;
-
-
+use App\Http\Controllers\Admin\ApplicantSavingInfoController;
+use App\Http\Controllers\Admin\TemplateController;
+use App\Http\Controllers\Admin\EmailSenderController;
+use App\Http\Controllers\Admin\CpdController;
+use App\Http\Controllers\Admin\CpdDetailController;
 use App\Http\Controllers\ImageUploadController;
+use App\Http\Controllers\GeneratorBuilderController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\ConfirmPasswordController;
 use App\Http\Controllers\Auth\RegisterController;
@@ -62,6 +66,15 @@ use App\Http\Controllers\EnquiryCareController;
 use App\Http\Controllers\FinancialAssessmentDocumentController;
 use App\Models\Employee;
 use PhpOffice\PhpSpreadsheet\Calculation\Web\Service;
+use App\Http\Controllers\Admin\ClientDocumentController;
+use App\Http\Controllers\Admin\ApplicationController;
+use App\Http\Controllers\Admin\CoverLetterController;
+use App\Http\Controllers\Admin\ApplicationAssessmentController;
+use App\Http\Controllers\Admin\ApplicationAssessmentFileController;
+use App\Http\Controllers\Admin\AssessmentSectionController;
+
+
+
 
 /*
 |--------------------------------------------------------------------------
@@ -332,278 +345,240 @@ Route::middleware('admin')->group(function () {
 
 
 
-	Route::group(['prefix' => 'client',], function () {
-		Route::get('/', ['as' => 'client.list', 'uses' => 'ClientController@index']);
-		Route::get('/{id}/edit', ['as' => 'edit.basic_info', 'uses' => 'ClientController@editBasicInfo']);
-		Route::put('update/{id}/client', ['as' => 'client.updateBasicInfo', 'uses' => 'ClientController@updateBasicInfo']);
-		Route::get('/{id}/dashboard', ['as' => 'client.show', 'uses' => 'ClientController@show']);
-		Route::get('/{id}/show', ['as' => 'client.view', 'uses' => 'ClientController@view']);
-		Route::post('/{id}/dashboard', ['as' => 'client.show', 'uses' => 'ClientController@addEnquiry']);
-		Route::delete('/{id}/show', ['as' => 'client.destroy', 'uses' => 'ClientController@destroy']);
-		Route::delete('/{id}/delete-permanently', ['as' => 'client.delete-permanently', 'uses' => 'ClientController@deletePermanently']);
-		Route::get('/{id}/restore', ['as' => 'client.restore', 'uses' => 'ClientController@restore']);
+	Route::group(['prefix' => 'client'], function () {
+
+		Route::get('/', [ClientController::class, 'index'])->name('client.list');
+		Route::get('/{id}/edit', [ClientController::class, 'editBasicInfo'])->name('edit.basic_info');
+		Route::put('update/{id}/client', [ClientController::class, 'updateBasicInfo'])->name('client.updateBasicInfo');
+		Route::get('/{id}/dashboard', [ClientController::class, 'show'])->name('client.show');
+		Route::get('/{id}/show', [ClientController::class, 'view'])->name('client.view');
+		Route::post('/{id}/dashboard', [ClientController::class, 'addEnquiry'])->name('client.show');
+		Route::delete('/{id}/show', [ClientController::class, 'destroy'])->name('client.destroy');
+		Route::delete('/{id}/delete-permanently', [ClientController::class, 'deletePermanently'])->name('client.delete-permanently');
+		Route::get('/{id}/restore', [ClientController::class, 'restore'])->name('client.restore');
+
+		Route::get('/enquiry/{id}/dashboard', [ClientController::class, 'enquiryToClient'])->name('enquiry.dashboard');
+
+		Route::post('/addbasicinfo', [ClientController::class, 'addBasicInfo'])->name('client.addbasicinfo');
+
+		Route::post('/store-passport', [ClientController::class, 'storePassport'])->name('client.store.passport');
+		Route::post('/save-student-contact', [ClientController::class, 'addStudentContactDetail'])->name('client.studentContactDetailsAdd');
+		Route::get('/edit-address/{id}', [ClientController::class, 'editClientAddress'])->name('edit.address');
+		Route::put('/update-address/{id}', [ClientController::class, 'updateClientAddress'])->name('update.client.address');
+		Route::get('/edit-emergency/{id}', [ClientController::class, 'editClientEmergency'])->name('edit.emergency');
+		Route::put('/update-emergency/{id}', [ClientController::class, 'updateClientEmergency'])->name('update.client.emergency');
+		Route::get('/edit-contact/{id}', [ClientController::class, 'editClientCurrentContact'])->name('edit.contact');
+		Route::put('/update-contact/{id}', [ClientController::class, 'updateClientCurrentContact'])->name('update.client.contact');
+		Route::delete('/delete-contact/{id}', [ClientController::class, 'deleteCurrentContact'])->name('delete.contact');
+		Route::delete('/delete-emergency/{id}', [ClientController::class, 'deleteEmergency'])->name('delete.emergency');
+		Route::delete('/delete-address/{id}', [ClientController::class, 'deleteAddress'])->name('delete.address');
+
+		Route::post('/save-client-address', [ClientController::class, 'addStudentAddressDetail'])->name('client.studentAddressAdd');
+		Route::post('/save-client-emergency', [ClientController::class, 'addStudentEmergencyDetail'])->name('client.studentEmergencyAdd');
+
+		Route::get('/add-passport/{id}', [ClientController::class, 'addPassportDetail'])->name('client.add.passport');
+		Route::get('/edit-passport/{id}', [ClientController::class, 'editPassportDetail'])->name('client.edit.passport');
+		Route::get('/show-passport/{id}', [ClientController::class, 'showPassportDetail'])->name('client.show.passport');
+		Route::put('/update-passport/{id}', [ClientController::class, 'updatePassport'])->name('client.update.passport');
+
+		Route::get('/add-cvisa/{id}', [ClientController::class, 'addVisaDetail'])->name('client.add.visa');
+		Route::get('/show-visa/{id}', [ClientController::class, 'showVisaDetail'])->name('client.show.visa');
+		Route::post('/store-visa', [ClientController::class, 'storeVisa'])->name('client.store.visa');
+		Route::get('/edit-cvisa/{id}', [ClientController::class, 'editVisaDetail'])->name('client.edit.visa');
+		Route::put('/update-cvisa/{id}', [ClientController::class, 'updateVisa'])->name('client.update.visa');
+
+		Route::get('/add-ukvisa/{id}', [ClientController::class, 'addUkVisaDetail'])->name('client.add.ukvisa');
+		Route::post('/store-ukvisa', [ClientController::class, 'storeUkVisa'])->name('client.store.ukvisa');
+		Route::get('/edit-ukvisa/{id}', [ClientController::class, 'editUkVisaDetail'])->name('client.edit.ukvisa');
+		Route::put('/update-ukvisa/{id}', [ClientController::class, 'updateUkVisa'])->name('client.update.ukvisa');
+
+		Route::get('/document', [ClientDocumentController::class, 'listDocument'])->name('client.document');
+		Route::get('/document/{id}', [ClientDocumentController::class, 'addDocument'])->name('client.add.document');
+		Route::post('/store-document', [ClientDocumentController::class, 'storeDocument'])->name('client.store.document');
+		Route::post('/store-documents', [ClientDocumentController::class, 'storeDocuments'])->name('client.store.documents');
+
+		Route::get('/edit-document/{id}', [ClientDocumentController::class, 'editDocument'])->name('client.edit.document');
+		Route::put('/update-document/{id}', [ClientDocumentController::class, 'updateDocument'])->name('client.update.document');
+		Route::delete('/delete-document/{id}', [ClientDocumentController::class, 'deleteDocument'])->name('client.delete.document');
+		Route::delete('/document/{id}', [ClientDocumentController::class, 'destroy'])->name('document.destroy');
+
+		Route::get('/application/immigration/{basic_info_id}', [ApplicationController::class, 'addImmigration'])->name('client.add.application.immigration');
+		Route::post('/store-immigration-application', [ApplicationController::class, 'storeImmigration'])->name('client.store.application.immigration');
+		Route::get('/application/edit-immigration/{id}', [ApplicationController::class, 'editImmigration'])->name('client.edit.application.immigration');
+		Route::delete('/application/delete-immigration', [ApplicationController::class, 'destroy'])->name('client.delete.application.immigration');
+
+		Route::get('/application/immigration/{id}/logs', [ApplicationController::class, 'applicationImmigrationLogs'])->name('client.list.application.immigration.logs');
+		Route::post('/application/immigration/{id}/storelogs', [ApplicationController::class, 'storeApplicationImmigrationLogs'])->name('client.list.application.immigration.storelogs');
+		Route::get('/application/immigration/process/view/{id}', [ApplicationController::class, 'viewApplicationImmigrationProcess'])->name('client.application.view.immigration.process');
+		Route::put('/application/immigration/process/update/{id}', [ApplicationController::class, 'updateApplicationImmigrationProcess'])->name('client.application.update.immigration.process');
+		Route::put('/application/immigration/process/delete/{id}', [ApplicationController::class, 'deleteApplicationImmigrationProcess'])->name('client.application.delete.immigration.process');
+		Route::put('/immigration/update-application/{id}', [ApplicationController::class, 'updateImmigration'])->name('client.update.immigration');
+		Route::post('application/immigration/process/email', [ApplicationController::class, 'emailApplicationImmigrationProcess'])->name('client.application.email.immigration.process');
+
+		Route::get('/application/admission/{basic_info_id}', [AdmissionApplicationController::class, 'create'])->name('client.add.application.admission');
+		Route::post('/store-admission-application', [AdmissionApplicationController::class, 'store'])->name('client.store.application.admission');
+		Route::get('/application/edit-admission/{id}', [AdmissionApplicationController::class, 'edit'])->name('client.edit.application.admission');
+		Route::put('/admission/update-application/{id}', [AdmissionApplicationController::class, 'update'])->name('client.update.admission');
+		Route::delete('/application/delete-admission', [AdmissionApplicationController::class, 'destroy'])->name('client.delete.application.admission');
+		Route::get('admissionapplication', [AdmissionApplicationController::class, 'index'])->name('admissionapplication.index');
 
 
-		Route::get('/enquiry/{id}/dashboard', ['as' => 'enquiry.dashboard', 'uses' => 'ClientController@enquiryToClient']);
+		Route::get('/application/immigration-appeal/{basic_info_id}', [ImmigrationAppealController::class, 'addImmigrationAppeal'])->name('client.add.application.immigrationappeal');
+		Route::get('/application/edit-immigration-appeal/{id}', [ImmigrationAppealController::class, 'editImmigrationAppeal'])->name('client.edit.application.immigrationappeal');
+		Route::put('/application/immigration-appeal/update-application/{id}', [ImmigrationAppealController::class, 'updateImmigrationAppeal'])->name('client.update.immigration-appeal');
+		Route::get('/application/immigration-appeal/{id}/logs', [ImmigrationAppealController::class, 'immigrationAppealLogs'])->name('client.list.immigration-appeal.logs');
+		Route::post('/application/immigration-appeal/{id}/storelogs', [ImmigrationAppealController::class, 'storeImmigrationAppealLogs'])->name('client.list.application.immigration-appeal.storelogs');
+		Route::get('/application/immigration-appeal/process/view/{id}', [ImmigrationAppealController::class, 'viewApplicationImmigrationProcess'])->name('client.application.view.immigration-appeal.process');
+		Route::put('/application/immigration-appeal/process/update/{id}', [ImmigrationAppealController::class, 'updateApplicationImmigrationProcess'])->name('client.application.update.immigration-appeal.process');
+		Route::put('/application/immigration-appeal/process/delete/{id}', [ImmigrationAppealController::class, 'deleteApplicationImmigrationProcess'])->name('client.application.delete.immigration-appeal.process');
+		Route::post('/store-immigration-appeal-application', [ImmigrationAppealController::class, 'storeImmigrationAppeal'])->name('client.store.application.immigration-appeal');
 
-		Route::post('/addbasicinfo', ['as' => 'client.addbasicinfo', 'uses' => 'ClientController@addBasicInfo']);
+		Route::get('/application/admission/{id}/logs', [AdmissionApplicationController::class, 'applicationLogs'])->name('client.list.application.admission.logs');
+		Route::get('/application/admission/process/view/{id}', [AdmissionApplicationController::class, 'showApplicationProcess'])->name('client.application.view.admission.process');
+		Route::post('/application/admission/{id}/storelogs', [AdmissionApplicationController::class, 'storeApplicationLogs'])->name('client.list.application.admission.storelogs');
+		Route::put('/application/admission/process/update/{id}', [AdmissionApplicationController::class, 'updateApplicationProcess'])->name('client.application.update.admission.process');
+		Route::put('/application/admission/process/delete/{id}', [AdmissionApplicationController::class, 'deleteApplicationProcess'])->name('client.application.delete.admission.process');
+		Route::post('application/admission/process/email', [AdmissionApplicationController::class, 'email'])->name('client.application.email.admission.process');
 
-		Route::post('/store-passport', ['as' => 'client.store.passport', 'uses' => 'ClientController@storePassport']);
-		Route::post('/save-student-contact', ['as' => 'client.studentContactDetailsAdd', 'uses' => 'ClientController@addStudentContactDetail']);
-		Route::get('/edit-address/{id}', ['as' => 'edit.address', 'uses' => 'ClientController@editClientAddress']);
-		Route::put('/update-address/{id}', ['as' => 'update.client.address', 'uses' => 'ClientController@updateClientAddress']);
-		Route::get('/edit-emergency/{id}', ['as' => 'edit.emergency', 'uses' => 'ClientController@editClientEmergency']);
-		Route::put('/update-emergency/{id}', ['as' => 'update.client.emergency', 'uses' => 'ClientController@updateClientEmergency']);
-		Route::get('/edit-contact/{id}', ['as' => 'edit.contact', 'uses' => 'ClientController@editClientCurrentContact']);
-		Route::put('/update-contact/{id}', ['as' => 'update.client.contact', 'uses' => 'ClientController@updateClientCurrentContact']);
-		Route::delete('/delete-contact/{id}', ['as' => 'delete.contact', 'uses' => 'ClientController@deleteCurrentContact']);
-		Route::delete('/delete-emergency/{id}', ['as' => 'delete.emergency', 'uses' => 'ClientController@deleteEmergency']);
-		Route::delete('/delete-address/{id}', ['as' => 'delete.address', 'uses' => 'ClientController@deleteAddress']);
-
-		Route::post('/save-client-address', ['as' => 'client.studentAddressAdd', 'uses' => 'ClientController@addStudentAddressDetail']);
-		Route::post('/save-client-emergency', ['as' => 'client.studentEmergencyAdd', 'uses' => 'ClientController@addStudentEmergencyDetail']);
-
-		Route::get('/add-passport/{id}', ['as' => 'client.add.passport', 'uses' => 'ClientController@addPassportDetail']);
-		Route::get('/edit-passport/{id}', ['as' => 'client.edit.passport', 'uses' => 'ClientController@editPassportDetail']);
-		Route::get('/show-passport/{id}', ['as' => 'client.show.passport', 'uses' => 'ClientController@showPassportDetail']);
-		Route::put('/update-passport/{id}', ['as' => 'client.update.passport', 'uses' => 'ClientController@updatePassport']);
-
-		Route::get('/add-cvisa/{id}', ['as' => 'client.add.visa', 'uses' => 'ClientController@addVisaDetail']);
-		Route::get('/show-visa/{id}', ['as' => 'client.show.visa', 'uses' => 'ClientController@showVisaDetail']);
-		Route::post('/store-visa', ['as' => 'client.store.visa', 'uses' => 'ClientController@storeVisa']);
-		Route::get('/edit-cvisa/{id}', ['as' => 'client.edit.visa', 'uses' => 'ClientController@editVisaDetail']);
-		Route::put('/update-cvisa/{id}', ['as' => 'client.update.visa', 'uses' => 'ClientController@updateVisa']);
-
-		Route::get('/add-ukvisa/{id}', ['as' => 'client.add.ukvisa', 'uses' => 'ClientController@addUkVisaDetail']);
-		Route::post('/store-ukvisa', ['as' => 'client.store.ukvisa', 'uses' => 'ClientController@storeUkVisa']);
-		Route::get('/edit-ukvisa/{id}', ['as' => 'client.edit.ukvisa', 'uses' => 'ClientController@editUkVisaDetail']);
-		Route::put('/update-ukvisa/{id}', ['as' => 'client.update.ukvisa', 'uses' => 'ClientController@updateUkVisa']);
-
-		Route::get('/document', ['as' => 'client.document', 'uses' => 'ClientDocumentController@listDocument']);
-		Route::get('/document/{id}', ['as' => 'client.add.document', 'uses' => 'ClientDocumentController@addDocument']);
-		Route::post('/store-document', ['as' => 'client.store.document', 'uses' => 'ClientDocumentController@storeDocument']);
-		Route::post('/store-documents', ['as' => 'client.store.documents', 'uses' => 'ClientDocumentController@storeDocuments']);
-
-		Route::get('/edit-document/{id}', ['as' => 'client.edit.document', 'uses' => 'ClientDocumentController@editDocument']);
-		Route::put('/update-document/{id}', ['as' => 'client.update.document', 'uses' => 'ClientDocumentController@updateDocument']);
-		Route::delete('/delete-document/{id}', ['as' => 'client.delete.document', 'uses' => 'ClientDocumentController@deleteDocument']);
-		Route::delete('/document/{id}', 'ClientDocumentController@destroy')->name('document.destroy');
-
-		Route::get('/application/immigration/{basic_info_id}', ['as' => 'client.add.application.immigration', 'uses' => 'ApplicationController@addImmigration']);
-		// Route::get('/application/immigration/{id}/edit', ['as' => 'client.add.document', 'uses' => 'ClientDocumentController@addDocument']);
-		Route::post('/store-immigration-application', ['as' => 'client.store.application.immigration', 'uses' => 'ApplicationController@storeImmigration']);
-		Route::get('/application/edit-immigration/{id}', ['as' => 'client.edit.application.immigration', 'uses' => 'ApplicationController@editImmigration']);
-		Route::delete('/application/delete-immigration', ['as' => 'client.delete.application.immigration', 'uses' => 'ApplicationController@destroy']);
-
-		//get all application logs
-		Route::get('/application/immigration/{id}/logs', ['as' => 'client.list.application.immigration.logs', 'uses' => 'ApplicationController@applicationImmigrationLogs']);
-		//add new application log
-		Route::post('/application/immigration/{id}/storelogs', ['as' => 'client.list.application.immigration.store,logs', 'uses' => 'ApplicationController@storeApplicationImmigrationLogs']);
-		Route::get('/application/immigration/process/view/{id}', ['as' => 'client.application.view.immigration.process', 'uses' => 'ApplicationController@viewApplicationImmigrationProcess']);
-
-		Route::put('/application/immigration/process/update/{id}', ['as' => 'client.application.update.immigration.process', 'uses' => 'ApplicationController@updateApplicationImmigrationProcess']);
-		Route::put('/application/immigration/process/delete/{id}', ['as' => 'client.application.delete.immigration.process', 'uses' => 'ApplicationController@deleteApplicationImmigrationProcess']);
-
-		Route::put('/immigration/update-application/{id}', ['as' => 'client.update.immigration', 'uses' => 'ApplicationController@updateImmigration']);
-
-		Route::post("application/immigration/process/email", "ApplicationController@emailApplicationImmigrationProcess")->name('client.application.email.immigration.process');
-
-		//Admission
-
-		Route::get('/application/admission/{basic_info_id}', ['as' => 'client.add.application.admission', 'uses' => 'AdmissionApplicationController@create']);
-		// Route::get('/application/immigration/{id}/edit', ['as' => 'client.add.document', 'uses' => 'ClientDocumentController@addDocument']);
-		Route::post('/store-admission-application', ['as' => 'client.store.application.admission', 'uses' => 'AdmissionApplicationController@store']);
-		Route::get('/application/edit-admission/{id}', ['as' => 'client.edit.application.admission', 'uses' => 'AdmissionApplicationController@edit']);
-		Route::put('/admission/update-application/{id}', ['as' => 'client.update.admission', 'uses' => 'AdmissionApplicationController@update']);
-		Route::delete('/application/delete-admission', ['as' => 'client.delete.application.admission', 'uses' => 'AdmissionApplicationController@destroy']);
-
-		Route::get('/application/immigration-appeal/{basic_info_id}', ['as' => 'client.add.application.immigrationappeal', 'uses' => 'ImmigrationAppealController@addImmigrationAppeal']);
-		Route::get('/application/edit-immigration-appeal/{id}', ['as' => 'client.edit.application.immigrationappeal', 'uses' => 'ImmigrationAppealController@editImmigrationAppeal']);
-		Route::put('/application/immigration-appeal/update-application/{id}', ['as' => 'client.update.immigration-appeal', 'uses' => 'ImmigrationAppealController@updateImmigrationAppeal']);
-
-		//add new application log
-		Route::get('/application/immigration-appeal/{id}/logs', ['as' => 'client.list.immigration-appeal.logs', 'uses' => 'ImmigrationAppealController@immigrationAppealLogs']);
-		Route::post('/application/immigration-appeal/{id}/storelogs', ['as' => 'client.list.application.immigration-appeal.storelogs', 'uses' => 'ImmigrationAppealController@storeImmigrationAppealLogs']);
-		Route::get('/application/immigration-appeal/process/view/{id}', ['as' => 'client.application.view.immigration-appeal.process', 'uses' => 'ImmigrationAppealController@viewApplicationImmigrationProcess']);
-		Route::put('/application/immigration-appeal/process/update/{id}', ['as' => 'client.application.update.immigration-appeal.process', 'uses' => 'ImmigrationAppealController@updateApplicationImmigrationProcess']);
-		Route::put('/application/immigration-appeal/process/delete/{id}', ['as' => 'client.application.delete.immigration-appeal.process', 'uses' => 'ImmigrationAppealController@deleteApplicationImmigrationProcess']);
-
-		// Route::get('/application/immigration-appeal/process/view/{id}', ['as' => 'client.application.view.immigration.process', 'uses' => 'ApplicationController@viewApplicationImmigrationProcess']);
-
-		// Route::put('/application/immigration-appeal/process/update/{id}', ['as' => 'client.application.update.immigration.process', 'uses' => 'ApplicationController@updateApplicationImmigrationProcess']);
-		// Route::put('/application/immigration-appeal/process/delete/{id}', ['as' => 'client.application.delete.immigration.process', 'uses' => 'ApplicationController@deleteApplicationImmigrationProcess']);
-
-
-		Route::post('/store-immigration-appeal-application', ['as' => 'client.store.application.immigration-appeal', 'uses' => 'ImmigrationAppealController@storeImmigrationAppeal']);
-
-		//Admission
-		// Route::get('/application/immigration-appeal/{basic_info_id}', ['as' => 'client.add.application.immigrationappeal', 'uses' => 'ImmigrationAppealApplicationController@create']);
-		// Route::get('/application/immigration/{id}/edit', ['as' => 'client.add.document', 'uses' => 'ClientDocumentController@addDocument']);
-		// Route::post('/store-admission-application', ['as' => 'client.store.application.admission', 'uses' => 'AdmissionApplicationController@store']);
-		// Route::get('/application/edit-admission/{id}', ['as' => 'client.edit.application.admission', 'uses' => 'AdmissionApplicationController@edit']);
-		// Route::put('/admission/update-application/{id}', ['as' => 'client.update.admission', 'uses' => 'AdmissionApplicationController@update']);
-		// Route::delete('/application/delete-admission', ['as' => 'client.delete.application.admission', 'uses' => 'AdmissionApplicationController@destroy']);
-
-		//get all application logs
-		Route::get('/application/admission/{id}/logs', ['as' => 'client.list.application.admission.logs', 'uses' => 'AdmissionApplicationController@applicationLogs']);
-		//add new application log
-		Route::get('/application/admission/process/view/{id}', ['as' => 'client.application.view.admission.process', 'uses' => 'AdmissionApplicationController@showApplicationProcess']);
-
-		Route::post('/application/admission/{id}/storelogs', ['as' => 'client.list.application.admission.store,logs', 'uses' => 'AdmissionApplicationController@storeApplicationLogs']);
-		Route::put('/application/admission/process/update/{id}', ['as' => 'client.application.update.admission.process', 'uses' => 'AdmissionApplicationController@updateApplicationProcess']);
-		Route::put('/application/admission/process/delete/{id}', ['as' => 'client.application.delete.admission.process', 'uses' => 'AdmissionApplicationController@deleteApplicationProcess']);
-
-		Route::post("application/admission/process/email", "AdmissionApplicationController@email")->name('client.application.email.admission.process');
-
-
-		// Admission end
-		//document Url
-		Route::get("/get-document/{file}", "ApplicationController@getDownload")->name('documenturl');
-		Route::get("/get-file/{file}", "ApplicationController@getFile")->name('fileurl');
-	});
-
-
-	Route::name("application.")->prefix('applications')->group(function () {
-		Route::get("admission", "AdmissionApplicationController@index")->name('admission.index');
-
-		Route::get("immigration", "ApplicationController@index")->name('immigration.index');
-	});
-
-	Route::name("additionaldocument.")->prefix("additionaldocument")->group(function () {
-		Route::get("create/loa/{id}", "AdditionalDocumentController@createLoa")->name('loa.create');
-		Route::post("create/loa/{id}", "AdditionalDocumentController@storeLoa")->name('loa.store');
-		Route::get("create/loc/{id}", "AdditionalDocumentController@createloc")->name('loc.create');
-		Route::post("create/loc/{id}", "AdditionalDocumentController@storeloc")->name('loc.store');
-		Route::get("create/fof/{id}", "AdditionalDocumentController@createfof")->name('fof.create');
-		Route::post("create/fof/{id}", "AdditionalDocumentController@storefof")->name('fof.store');
-		Route::get("create/rel/{id}", "AdditionalDocumentController@createrel")->name('rel.create');
-		Route::post("create/rel/{id}", "AdditionalDocumentController@storerel")->name('rel.store');
-
-		Route::get("create/spd/{id}", "AdditionalDocumentController@createspd")->name('spd.create');
-		Route::post("create/spd/{id}", "AdditionalDocumentController@storespd")->name('spd.store');
-
-		Route::get("create/apd/{id}", "AdditionalDocumentController@createapd")->name('apd.create');
-		Route::post("create/apd/{id}", "AdditionalDocumentController@storeapd")->name('apd.store');
-
-
-		Route::get("create/coe/{id}", "AdditionalDocumentController@createcoe")->name('coe.create');
-		Route::post("create/coe/{id}", "AdditionalDocumentController@storecoe")->name('coe.store');
-
-		Route::get("create/ec/{id}", "AdditionalDocumentController@createec")->name('ec.create');
-		Route::post("create/ec/{id}", "AdditionalDocumentController@storeec")->name('ec.store');
-
-
-		Route::get("create/nok/{id}", "AdditionalDocumentController@createnok")->name('nok.create');
-		Route::post("create/nok/{id}", "AdditionalDocumentController@storenok")->name('nok.store');
-
-
-		Route::get("create/eci/{id}", "AdditionalDocumentController@createeci")->name('eci.create');
-		Route::post("create/eci/{id}", "AdditionalDocumentController@storeeci")->name('eci.store');
-
-
-		Route::get("create/eicl/{id}", "AdditionalDocumentController@createeicl")->name('eicl.create');
-		Route::post("create/eicl/{id}", "AdditionalDocumentController@storeeicl")->name('eicl.store');
-	});
-
-
-	Route::get("aacl/{id}", "CoverLetterController@create")->name('aacl.create');
-	Route::post("aacl/{id}", "CoverLetterController@store")->name('aacl.store');
-
-
-	Route::name("application_assessment.")->prefix("application_assessment")->group(function () {
-		Route::get("create/{id}", "ApplicationAssessmentController@create")->name('create');
-		Route::post("create/{id}", "ApplicationAssessmentController@store")->name('store');
-		Route::get("edit/{id}", "ApplicationAssessmentController@edit")->name('edit');
-		Route::put("edit/{id}", "ApplicationAssessmentController@update")->name('update');
-		Route::get("/{id}", "ApplicationAssessmentController@show")->name('show');
-		Route::delete("/{id}", "ApplicationAssessmentController@destroy")->name('destroy');
-		Route::post("/{id}", "ApplicationAssessmentController@uploadFiles")->name('uploadfiles');
-		Route::post("/{id}/updateStatus", "ApplicationAssessmentController@updateStatus")->name("updateStatus");
-		Route::post("/{id}/toggle", "ApplicationAssessmentController@toggle")->name("toggle");
-	});
-
-	Route::get("financial_assessment/{id}", "ApplicationAssessmentController@showFinancial")->name('financial_assessment.show');
-	Route::post("financial_assessment/{id}", "ApplicationAssessmentController@generateFinancial")->name('financial_assessment.generate');
-
-
-	Route::name("application_assessment_file.")->prefix("application_assessment_file")->group(function () {
-		Route::get('preview/{id}', "ApplicationAssessmentFileController@preview")->name('preview');
-		Route::put("update/{id}", "ApplicationAssessmentFileController@update")->name('update');
-		Route::delete("/{id}", "ApplicationAssessmentFileController@destroy")->name('destroy');
-	});
-
-	Route::name("assessment_section.")->prefix("assessment_section")->group(function () {
-		Route::post('create/{id}', "AssessmentSectionController@store")->name('store');
-		Route::post('{id}', "AssessmentSectionController@update")->name('update');
-
-		Route::delete("/{id}", "AssessmentSectionController@destroy")->name('destroy');
-		Route::post("/{id}/toggle", "AssessmentSectionController@toggle")->name("toggle");
-	});
-
-	Route::name("employment_detail.")->prefix("employment_detail")->group(function () {
-		Route::get("/{id}", "ApplicantEmploymentInfoController@show")->name('show');
-		Route::post('/{id}', "ApplicantEmploymentInfoController@update")->name('update');
-		Route::post('create/{id}', "ApplicantEmploymentInfoController@store")->name('store');
-		Route::delete("/{id}", "ApplicantEmploymentInfoController@destroy")->name('destroy');
-		Route::post("/{id}/toggle", "ApplicantEmploymentInfoController@toggle")->name("toggle");
-	});
-
-	Route::name("applicantpayslip.")->prefix("applicantpayslip")->group(function () {
-		Route::get("/{id}", "ApplicantPayslipController@show")->name('show');
-		Route::post('create/{id}', "ApplicantPayslipController@store")->name('store');
-		Route::post('import/{id}', "ApplicantPayslipController@import")->name('import');
-
-		Route::get('edit/{id}', "ApplicantPayslipController@edit")->name('edit');
-		Route::post('edit/{id}', "ApplicantPayslipController@update")->name('update');
-
-		Route::delete("/{id}", "ApplicantPayslipController@destroy")->name('destroy');
-		Route::get("/{id}/toggle", "ApplicantPayslipController@toggle")->name("toggle");
-	});
-
-
-	Route::name("applicantsavinginfo.")->prefix("applicantsavinginfo")->group(function () {
-		Route::get("edit/{id}", "ApplicantSavingInfoController@edit")->name('edit');
-		Route::post('edit/{id}', "ApplicantSavingInfoController@update")->name('update');
-
-		Route::post('create/{id}', "ApplicantSavingInfoController@store")->name('store');
-		Route::delete("/{id}", "ApplicantSavingInfoController@destroy")->name('destroy');
-		// Route::post("/{id}/toggle","ApplicantSavingInfo@toggle")->name("toggle");
+		Route::get('/get-document/{file}', [ApplicationController::class, 'getDownload'])->name('documenturl');
+		Route::get('/get-file/{file}', [ApplicationController::class, 'getFile'])->name('fileurl');
 
 	});
 
 
-	Route::resource("template", "TemplateController");
+	Route::name('application.')->prefix('applications')->group(function () {
+    Route::get('admission', [AdmissionApplicationController::class, 'index'])->name('admission.index');
+    Route::get('immigration', [ApplicationController::class, 'index'])->name('immigration.index');
+		});
+
+	Route::name('additionaldocument.')->prefix('additionaldocument')->group(function () {
+			Route::get('create/loa/{id}', [AdditionalDocumentController::class, 'createLoa'])->name('loa.create');
+			Route::post('create/loa/{id}', [AdditionalDocumentController::class, 'storeLoa'])->name('loa.store');
+
+			Route::get('create/loc/{id}', [AdditionalDocumentController::class, 'createloc'])->name('loc.create');
+			Route::post('create/loc/{id}', [AdditionalDocumentController::class, 'storeloc'])->name('loc.store');
+
+			Route::get('create/fof/{id}', [AdditionalDocumentController::class, 'createfof'])->name('fof.create');
+			Route::post('create/fof/{id}', [AdditionalDocumentController::class, 'storefof'])->name('fof.store');
+
+			Route::get('create/rel/{id}', [AdditionalDocumentController::class, 'createrel'])->name('rel.create');
+			Route::post('create/rel/{id}', [AdditionalDocumentController::class, 'storerel'])->name('rel.store');
+
+			Route::get('create/spd/{id}', [AdditionalDocumentController::class, 'createspd'])->name('spd.create');
+			Route::post('create/spd/{id}', [AdditionalDocumentController::class, 'storespd'])->name('spd.store');
+
+			Route::get('create/apd/{id}', [AdditionalDocumentController::class, 'createapd'])->name('apd.create');
+			Route::post('create/apd/{id}', [AdditionalDocumentController::class, 'storeapd'])->name('apd.store');
+
+			Route::get('create/coe/{id}', [AdditionalDocumentController::class, 'createcoe'])->name('coe.create');
+			Route::post('create/coe/{id}', [AdditionalDocumentController::class, 'storecoe'])->name('coe.store');
+
+			Route::get('create/ec/{id}', [AdditionalDocumentController::class, 'createec'])->name('ec.create');
+			Route::post('create/ec/{id}', [AdditionalDocumentController::class, 'storeec'])->name('ec.store');
+
+			Route::get('create/nok/{id}', [AdditionalDocumentController::class, 'createnok'])->name('nok.create');
+			Route::post('create/nok/{id}', [AdditionalDocumentController::class, 'storenok'])->name('nok.store');
+
+			Route::get('create/eci/{id}', [AdditionalDocumentController::class, 'createeci'])->name('eci.create');
+			Route::post('create/eci/{id}', [AdditionalDocumentController::class, 'storeeci'])->name('eci.store');
+
+			Route::get('create/eicl/{id}', [AdditionalDocumentController::class, 'createeicl'])->name('eicl.create');
+			Route::post('create/eicl/{id}', [AdditionalDocumentController::class, 'storeeicl'])->name('eicl.store');
+		});
 
 
-	Route::get("/test", "DashboardController@test");
-	Route::resource('emailSenders', 'EmailSenderController');
-
-	Route::resource('cpds', 'CpdController');
-
-	Route::resource('cpdDetails', 'CpdDetailController')->only(["store","update",'destroy','show']);
-	Route::post("cpdDetails/import","CpdDetailController@import")->name('cpdDetails.import');
-
-	// Generator
-
-	Route::get('generator_builder', '\InfyOm\GeneratorBuilder\Controllers\GeneratorBuilderController@builder')->name('io_generator_builder');
-	Route::get('field_template', '\InfyOm\GeneratorBuilder\Controllers\GeneratorBuilderController@fieldTemplate')->name('io_field_template');
-	Route::get('relation_field_template', '\InfyOm\GeneratorBuilder\Controllers\GeneratorBuilderController@relationFieldTemplate')->name('io_relation_field_template');
-	Route::post('generator_builder/generate', '\InfyOm\GeneratorBuilder\Controllers\GeneratorBuilderController@generate')->name('io_generator_builder_generate');
-	Route::post('generator_builder/rollback', '\InfyOm\GeneratorBuilder\Controllers\GeneratorBuilderController@rollback')->name('io_generator_builder_rollback');
-	Route::post('generator_builder/generate-from-file', '\InfyOm\GeneratorBuilder\Controllers\GeneratorBuilderController@generateFromFile')->name('io_generator_builder_generate_from_file');
+	Route::get('aacl/{id}', [CoverLetterController::class, 'create'])->name('aacl.create');
+	Route::post('aacl/{id}', [CoverLetterController::class, 'store'])->name('aacl.store');
 
 
-	Route::post('visaexpiry-email',"VisaController@sendEmail")->name('send.visaexpiry.email');
-
-	Route::name("massemail.")->group(function(){
-		Route::get("send-emails","CompanyInfoController@sendEmails");
-		Route::post("send-emails","CompanyInfoController@postSendEmails")->name("send");
+	Route::name('application_assessment.')->prefix('application_assessment')->group(function () {
+		Route::get('create/{id}', [ApplicationAssessmentController::class, 'create'])->name('create');
+		Route::post('create/{id}', [ApplicationAssessmentController::class, 'store'])->name('store');
+		Route::get('edit/{id}', [ApplicationAssessmentController::class, 'edit'])->name('edit');
+		Route::put('edit/{id}', [ApplicationAssessmentController::class, 'update'])->name('update');
+		Route::get('{id}', [ApplicationAssessmentController::class, 'show'])->name('show');
+		Route::delete('{id}', [ApplicationAssessmentController::class, 'destroy'])->name('destroy');
+		Route::post('{id}', [ApplicationAssessmentController::class, 'uploadFiles'])->name('uploadfiles');
+		Route::post('{id}/updateStatus', [ApplicationAssessmentController::class, 'updateStatus'])->name('updateStatus');
+		Route::post('{id}/toggle', [ApplicationAssessmentController::class, 'toggle'])->name('toggle');
 	});
-});
+
+	Route::get('financial_assessment/{id}', [ApplicationAssessmentController::class, 'showFinancial'])->name('financial_assessment.show');
+	Route::post('financial_assessment/{id}', [ApplicationAssessmentController::class, 'generateFinancial'])->name('financial_assessment.generate');
+
+	Route::name('application_assessment_file.')->prefix('application_assessment_file')->group(function () {
+		Route::get('preview/{id}', [ApplicationAssessmentFileController::class, 'preview'])->name('preview');
+		Route::put('update/{id}', [ApplicationAssessmentFileController::class, 'update'])->name('update');
+		Route::delete('{id}', [ApplicationAssessmentFileController::class, 'destroy'])->name('destroy');
+	});
+
+		
+	Route::name('assessment_section.')->prefix('assessment_section')->group(function () {
+		Route::post('create/{id}', [AssessmentSectionController::class, 'store'])->name('store');
+		Route::post('{id}', [AssessmentSectionController::class, 'update'])->name('update');
+		Route::delete('{id}', [AssessmentSectionController::class, 'destroy'])->name('destroy');
+		Route::post('{id}/toggle', [AssessmentSectionController::class, 'toggle'])->name('toggle');
+	});
+
+	Route::name('employment_detail.')->prefix('employment_detail')->group(function () {
+		Route::get('{id}', [ApplicantEmploymentInfoController::class, 'show'])->name('show');
+		Route::post('{id}', [ApplicantEmploymentInfoController::class, 'update'])->name('update');
+		Route::post('create/{id}', [ApplicantEmploymentInfoController::class, 'store'])->name('store');
+		Route::delete('{id}', [ApplicantEmploymentInfoController::class, 'destroy'])->name('destroy');
+		Route::post('{id}/toggle', [ApplicantEmploymentInfoController::class, 'toggle'])->name('toggle');
+	});
+
+	Route::name('applicantpayslip.')->prefix('applicantpayslip')->group(function () {
+		Route::get('{id}', [ApplicantPayslipController::class, 'show'])->name('show');
+		Route::post('create/{id}', [ApplicantPayslipController::class, 'store'])->name('store');
+		Route::post('import/{id}', [ApplicantPayslipController::class, 'import'])->name('import');
+
+		Route::get('edit/{id}', [ApplicantPayslipController::class, 'edit'])->name('edit');
+		Route::post('edit/{id}', [ApplicantPayslipController::class, 'update'])->name('update');
+
+		Route::delete('{id}', [ApplicantPayslipController::class, 'destroy'])->name('destroy');
+		Route::get('{id}/toggle', [ApplicantPayslipController::class, 'toggle'])->name('toggle');
+	});
+
+	Route::name('applicantsavinginfo.')->prefix('applicantsavinginfo')->group(function () {
+		Route::get('edit/{id}', [ApplicantSavingInfoController::class, 'edit'])->name('edit');
+		Route::post('edit/{id}', [ApplicantSavingInfoController::class, 'update'])->name('update');
+
+		Route::post('create/{id}', [ApplicantSavingInfoController::class, 'store'])->name('store');
+		Route::delete('{id}', [ApplicantSavingInfoController::class, 'destroy'])->name('destroy');
+		// Route::post('{id}/toggle', [ApplicantSavingInfoController::class, 'toggle'])->name('toggle'); // commented out as per original
+	});
+
+	// Resource routes
+	Route::resource('template', TemplateController::class);
+	Route::resource('emailSenders', EmailSenderController::class);
+	Route::resource('cpds', CpdController::class);
+	Route::resource('cpdDetails', CpdDetailController::class)->only(['store', 'update', 'destroy', 'show']);
+
+	Route::post('cpdDetails/import', [CpdDetailController::class, 'import'])->name('cpdDetails.import');
+
+	// Generator routes
+	// Route::get('generator_builder', [GeneratorBuilderController::class, 'builder'])->name('io_generator_builder');
+	// Route::get('field_template', [GeneratorBuilderController::class, 'fieldTemplate'])->name('io_field_template');
+	// Route::get('relation_field_template', [GeneratorBuilderController::class, 'relationFieldTemplate'])->name('io_relation_field_template');
+	// Route::post('generator_builder/generate', [GeneratorBuilderController::class, 'generate'])->name('io_generator_builder_generate');
+	// Route::post('generator_builder/rollback', [GeneratorBuilderController::class, 'rollback'])->name('io_generator_builder_rollback');
+	// Route::post('generator_builder/generate-from-file', [GeneratorBuilderController::class, 'generateFromFile'])->name('io_generator_builder_generate_from_file');
+
+	Route::post('visaexpiry-email', [VisaController::class, 'sendEmail'])->name('send.visaexpiry.email');
+
+	Route::name('massemail.')->group(function () {
+		Route::get('send-emails', [CompanyInfoController::class, 'sendEmails']);
+		Route::post('send-emails', [CompanyInfoController::class, 'postSendEmails'])->name('send');
+	});
+
+	Route::get('/test', [DashboardController::class, 'test']);
 
 // routes/web.php
 Route::post('/upload-image', [ImageUploadController::class, 'upload'])->name('upload.image');
 Route::get("/storage/{file}", [HomeController::class, 'getDownload'])->name('storageurl');
 Route::get("housekeeping", [HomeController::class, 'work']);
+
+});
 
 

@@ -2,8 +2,8 @@
 
 namespace App\Repositories\Enquiry;
 
-use DB;
-use Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use App\Models\Enquiry;
 use App\Models\EnquiryActivity;
 use App\Repositories\Enquiry\EnquiryInterface as EnquiryInterface;
