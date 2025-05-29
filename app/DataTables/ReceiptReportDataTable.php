@@ -17,7 +17,8 @@ use Barryvdh\DomPDF\Facade\Pdf;
 class ReceiptReportDataTable extends DataTable
 {
 
-    protected $excelWriter = 'Xls';
+   protected string $excelWriter = 'Xls';
+
 
     /**
      * Build DataTable class.
@@ -63,7 +64,7 @@ class ReceiptReportDataTable extends DataTable
         return $this->builder()
             ->setTableId('report-table-receipt')
             ->columns($this->getColumns())
-            ->minifiedAjax(route('your.route.name'), $js)
+            ->minifiedAjax(route('report.receipt.data'), $js)
             ->orderBy(1)
             ->buttons(
                     Button::make('pdf')->text('Export to PDF'),

@@ -20,7 +20,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 class RawInquiryDataTable extends DataTable
 {
 
-    protected $excelWriter = 'Xls';
+    protected string $excelWriter = 'Xls';
 
 
     /**

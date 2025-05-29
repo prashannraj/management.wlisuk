@@ -18,7 +18,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 class ImmigrationReportDataTable extends DataTable
 {
 
-    protected $excelWriter = 'Xls';
+   protected string $excelWriter = 'Xls';
 
     /**
      * Build DataTable class.

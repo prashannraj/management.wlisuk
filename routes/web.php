@@ -149,6 +149,8 @@ Route::middleware('admin')->group(function () {
 	Route::resource('employeeaddress', EmployeeAddressController::class)->only(['store', 'edit', 'update']);
 	Route::resource('employeeemergency', EmployeeEmergencyContactController::class)->only(['store', 'edit', 'update']);
 	Route::resource('enquiryform', EnquiryFormController::class);
+	Route::get('/enquiryform/display/{uuid}', [EnquiryFormController::class, 'display'])->name('enquiryform.display');
+
 
 	Route::resource('employmentinfo', EmploymentInfoController::class)->only(['show', 'store', 'edit', 'update']);
 	Route::get('employmentinfo/create/{id}', [EmploymentInfoController::class, 'create'])->name('employmentinfo.create');
@@ -198,6 +200,7 @@ Route::middleware('admin')->group(function () {
 	Route::name('report.')->prefix('report')->group(function () {
 		Route::get('/invoice', [ReportController::class, 'index'])->name('invoice');
 		Route::get('/receipt', [ReportController::class, 'indexReceipt'])->name('receipt');
+		Route::get('/receipt-data', [ReportController::class, 'getReceiptReportData'])->name('receipt.data');
 		Route::get('/imm_applications', [ReportController::class, 'indexImmigration'])->name('immigration');
 		Route::get('/clients', [ReportController::class, 'indexClient'])->name('client');
 		Route::get('/visas', [ReportController::class, 'indexVisa'])->name('visa');

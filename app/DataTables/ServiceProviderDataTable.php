@@ -11,7 +11,8 @@ use Yajra\DataTables\Services\DataTable;
 
 class ServiceProviderDataTable extends DataTable
 {
-    protected $excelWriter = 'Xls';
+   protected string $excelWriter = 'Xls';
+
 
     /**
      * Build DataTable class.

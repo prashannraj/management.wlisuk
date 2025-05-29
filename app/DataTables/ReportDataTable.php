@@ -19,7 +19,8 @@ use Barryvdh\DomPDF\Facade\Pdf as PDF;
 class ReportDataTable extends DataTable
 {
 
-    protected $excelWriter = 'Xls';
+    protected string $excelWriter = 'Xls';
+
 
 
     /**

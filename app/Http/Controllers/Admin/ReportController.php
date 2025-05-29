@@ -121,4 +121,15 @@ class ReportController extends BaseController
         // return view('admin.report.index');
         return $datatable->with(['visa_expiry' => $request->visa_expiry, 'startdate' => $request->startdate, 'enddate' => $request->enddate])->render('admin.report.visareport',compact('data'));
     }
+
+    public function getReceiptReportData(ReceiptReportDataTable $dataTable, Request $request)
+    {
+        return $dataTable
+            ->with([
+                'startdate' => $request->startdate,
+                'enddate' => $request->enddate,
+            ])
+            ->ajax();
+    }
+
 }
