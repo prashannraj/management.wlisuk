@@ -3,7 +3,7 @@
 namespace App\Repositories\Student;
 
 use DB;
-use Auth;
+use Illuminate\Support\Facades\Auth;
 use App\Models\Enquiry;
 use App\Models\StudentContactDetail;
 use App\Repositories\Student\StudentInterface as StudentInterface;

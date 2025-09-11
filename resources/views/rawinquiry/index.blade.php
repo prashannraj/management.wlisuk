@@ -1,12 +1,7 @@
-@extends("layouts.master")
-
-@push('styles')
-<link rel="stylesheet" type="text/css" href="{{ asset('assets/vendor/bootstrap-datepicker/dist/css/bootstrap-datepicker.min.css') }}">
-@endpush
+@extends('layouts.master')
 
 @section('header')
-<!-- Header -->
-<div class="header bg-wlis pb-6">
+<div class="header bg-primary pb-6">
     <div class="container-fluid">
         <div class="header-body">
             <div class="row align-items-center py-4">
@@ -14,170 +9,136 @@
                     <h6 class="h2 text-white d-inline-block mb-0">Web Enquiries</h6>
                 </div>
                 <div class="col-lg-6 col-5 text-right">
-                    <a href="{{ route('home') }}" class="btn btn-sm btn-neutral">
-                        <i class="fas fa-chevron-left"></i> Back To Dashboard</a>
+                    <a href="{{ route('home') }}" class="btn btn-sm btn-neutral">Back To Dashboard</a>
                 </div>
             </div>
         </div>
     </div>
 </div>
 @endsection
+
 @section('main-content')
-<div class="row">
-    <div class="col">
-        <!-- Passport Details -->
-        <div class="card" id="documentCard">
-            <div class="card-header">
-                <h3 class="text-primary font-weight-600">Web Enquiries
+<div class="card">
+    <div class="card-header">
+        <h3 class="mb-0">Web Enquiries</h3>
+    </div>
+    <div class="card-body">
 
-                </h3>
+        <!-- Filters -->
+        <form method="GET" action="{{ route('rawenquiry.index') }}" class="mb-4 row">
+            <div class="col-md-3">
+                <input type="text" class="form-control" name="startdate" value="{{ request('startdate') }}" placeholder="Start Date (YYYY-MM-DD)">
             </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <div>
-                        <form class="form-inline my-4" id="filterform">
-                            <div class="form-group mx-2">
-                                <label for="">Start Date</label>
-                                <input autocomplete="off" type="text" class="ml-1 datepicker2 form-control" name="startdate">
+            <div class="col-md-3">
+                <input type="text" class="form-control" name="enddate" value="{{ request('enddate') }}" placeholder="End Date (YYYY-MM-DD)">
+            </div>
+            <div class="col-md-3">
+                <select name="status" class="form-control">
+                    <option value="">-- Filter processed --</option>
+                    <option value="processed" {{ request('status')=='processed'?'selected':'' }}>Processed</option>
+                    <option value="not_processed" {{ request('status')=='not_processed'?'selected':'' }}>Not Processed</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex">
+                <button type="submit" class="btn btn-info mr-2">Filter</button>
+                <a href="{{ route('rawenquiry.index') }}" class="btn btn-danger">Reset</a>
+            </div>
+        </form>
 
+        <!-- Table -->
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+                <thead class="thead-light">
+                    <tr>
+                        <th>S/N</th>
+                        <th>Form Name</th>
+                        <th>Full Name</th>
+                        <th>Validated</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($inquiries as $index => $row)
+                    <tr>
+                        <td>{{ $inquiries->firstItem() + $index }}</td>
+                        <td>{{ $row->form_name ?? '-' }}</td>
+                        <td>{{ $row->full_name }}</td>
+                        <td>{{ $row->is_validated }}</td>
+                        <td class="d-flex flex-wrap gap-1">
+                            <!-- Toggle Status -->
+                            <a href="{{ route('rawenquiry.toggle',$row->id) }}" class="btn btn-sm {{ $row->active ? 'btn-info' : 'btn-danger' }}">
+                                {{ $row->active ? "Active" : "Inactive" }}
+                            </a>
+
+                            <!-- View -->
+                            <a href="{{ route('rawenquiry.show',$row->id) }}" class="btn btn-sm btn-primary"><i class="fa fa-eye"></i></a>
+
+                            <!-- Edit -->
+                            <a href="{{ route('rawenquiry.edit',$row->id) }}" class="btn btn-sm btn-info"><i class="fa fa-edit"></i></a>
+
+                            <!-- Note Modal Trigger -->
+                            <button type="button" class="btn btn-sm btn-warning" data-toggle="modal" data-target="#note-modal-{{ $row->id }}">
+                                <i class="fa fa-cog"></i>
+                            </button>
+
+                            <!-- Delete -->
+                            <form action="{{ route('rawenquiry.destroy',$row->id) }}" method="POST" style="display:inline;">
+                                @csrf @method('delete')
+                                <button class="btn btn-sm btn-danger" type="submit"><i class="fa fa-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+
+                    <!-- Note Modal -->
+                    <div class="modal fade" id="note-modal-{{ $row->id }}" tabindex="-1" role="dialog" aria-labelledby="noteModalLabel{{ $row->id }}" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered modal-sm" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Instruction / Discussion:</h5>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    <form action="{{ route('rawenquiry.add-note', $row->id) }}" method="POST">
+                                        @csrf
+                                        <div class="form-group">
+                                            <label for="note">Instruction / Discussion:</label>
+                                            <textarea class="form-control" id="note" name="note">{{ $row->additional_details }}</textarea>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="process">Process:</label>
+                                            <input type="checkbox" id="process" name="process">
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">Save</button>
+                                    </form>
+                                </div>
                             </div>
-                            <div class="form-group mx-2">
-                                <label for="">End Date</label>
-                                <input autocomplete="off" type="text" class='ml-1 form-control datepicker2' name="enddate">
-
-                            </div>
-
-                            <div class="form-group mx-2">
-                                <label class="" for="filterByActivity">Filter processed</label>
-                                <select class="form-control ml-1" id="filterByActivity" name="status">
-                                    <option value="">List Data By</option>
-                                    <option value="not_processed">Not processed</option>
-                                    <option value="processed">Processed</option>
-                                </select>
-                            </div>
-                            <input type="submit" class='btn btn-info' value="Filter">
-                            <a href="#" class="btn btn-warning" id="resetbutton">Reset</a>
-
-                        </form>
+                        </div>
                     </div>
 
-                    {!! $dataTable->table() !!}
-
-                </div>
-            </div>
-            <div class="card-footer">
-
-            </div>
+                    @empty
+                    <tr>
+                        <td colspan="6" class="text-center">No enquiries found.</td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
+
+        <!-- Pagination -->
+        <div class="mt-3">
+          {{ $inquiries->appends(request()->query())->links('pagination::bootstrap-4') }}
+      </div>
+
+
     </div>
 </div>
 
+<style>
+.modal-sm { max-width: 300px; }
+.modal-body { padding: 15px; margin: 10px; }
+.d-flex.flex-wrap.gap-1 > * { margin-bottom: 5px; }
+</style>
+
 @endsection
-
-@push("scripts")
-<link href="https://cdn.datatables.net/1.10.16/css/jquery.dataTables.min.css" rel="stylesheet">
-<link href="https://cdn.datatables.net/1.10.19/css/dataTables.bootstrap4.min.css" rel="stylesheet">
-<script src="https://cdn.datatables.net/1.10.16/js/jquery.dataTables.min.js"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"></script>
-<script src="https://cdn.datatables.net/1.10.19/js/dataTables.bootstrap4.min.js"></script>
-<script src="https://cdn.datatables.net/buttons/1.6.4/js/dataTables.buttons.min.js"></script>
-<link rel="stylesheet" href="https://cdn.datatables.net/buttons/1.0.3/css/buttons.dataTables.min.css">
-<script src="/vendor/datatables/buttons.server-side.js"></script>
-<script src="{{ asset('assets/vendor/bootstrap-datepicker/dist/js/bootstrap-datepicker.min.js') }}"></script>
-{!! $dataTable->scripts() !!}
-
-<script>
-    $(function() {
-        // var oTable = $('#receiptreport-table').DataTable({
-        //     autoWidth: false,
-        //     language: {
-        //         paginate: {
-        //             previous: "<i class='fas fa-angle-left'>",
-        //             next: "<i class='fas fa-angle-right'>"
-        //         }
-        //     },
-        //     processing: true,
-        //     serverSide: true,
-        //     order: [
-        //         [0, "desc"]
-        //     ],
-        //     ajax: {
-        //         url: "{!! route('report.receipt') !!}",
-        //         data: function(d) {
-        //             d.startdate = $('input[name=startdate]').val();
-        //             d.enddate = $('input[name=enddate]').val();
-        //             console.log(d.startdate, d.enddate);
-        //         }
-        //     },
-        //     dom: 'Bfrtip',
-        //     columns: [{
-        //         "data": "DT_RowIndex",
-        //         "name": "DT_RowIndex",
-        //         "title": "S/N",
-        //         "orderable": false,
-        //         "searchable": false
-        //     }, {
-        //         "data": "date",
-        //         "name": "id",
-        //         "title": "Receipt Date",
-        //         "orderable": true,
-        //         "searchable": true
-        //     },{
-        //         "data": "receipt_no",
-        //         "name": "id",
-        //         "title": "Receipt No",
-        //         "orderable": true,
-        //         "searchable": true
-        //     },
-        //     {
-        //         "data": "invoice.invoice_no",
-        //         "name": "invoice_id",
-        //         "title": "Invoice No",
-        //         "orderable": true,
-        //         "searchable": true
-        //     },
-        //     {
-        //         "data": "currency.title",
-        //         "name": "iso_currency_id",
-        //         "title": "Currency",
-        //         "orderable": true,
-        //         "searchable": false
-        //     }, {
-        //         "data": "amount_received",
-        //         "name": "amount_received",
-        //         "title": "Amount",
-        //         "orderable": true,
-        //         "searchable": true
-        //     }],
-        //     "buttons": [{
-        //         "extend": "export"
-        //     }, ]
-        // });
-
-        // window.LaravelDataTables = window.LaravelDataTables || {};
-        // window.LaravelDataTables["receiptreport-table"] = oTable;
-
-        $("#filterform").on("submit", function(e) {
-            e.preventDefault();
-            window.LaravelDataTables["rawinquiry-table"].draw();
-        })
-
-
-        $("#resetbutton").on('click', function(e) {
-            e.preventDefault();
-            $('input[name=startdate]').val("");
-            $('input[name=enddate]').val("");
-
-            window.LaravelDataTables["rawinquiry-table"].draw();
-        })
-
-        $('.datepicker2').datepicker({
-            format: "{{ config('constant.date_format_javascript') }}",
-        });
-
-    });
-</script>
-
-
-
-@endpush

@@ -8,23 +8,23 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
-use PDF;
-use File;
-use Auth;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Auth;
 
 class EnquiryProcessedMail extends Mailable
 {
     use Queueable, SerializesModels;
 
+    protected $data;
+
     /**
      * Create a new message instance.
      *
-     * @return void
+     * @param array $data
      */
-    protected $data;
-    public function __construct($data)
+    public function __construct(array $data)
     {
-        //
         $this->data = $data;
     }
 
@@ -37,73 +37,101 @@ class EnquiryProcessedMail extends Mailable
     {
         $data = $this->data;
 
-        $maal =  $this->view('enquiryform.emails.processed', compact('data'));
-        $email_content = view('enquiryform.emails.processed', compact('data'));
+        // Base view
+        $mail = $this->view('enquiryform.emails.processed', compact('data'));
+        $email_content = view('enquiryform.emails.processed', compact('data'))->render();
 
-        $maal->from(getEmailSender(4)->email,getEmailSender(4)->name);
-        $maal->subject("Attn: {$data['row']->full_name}, Enquiry process confirmation");
-        if($data['row']->validated_at == null)
-        $maal->to(['admin@wlisuk.com']);
-        else{
-            $maal->to([$data['row']->email,'admin@wlisuk.com']);
+        // Sender
+        $sender = getEmailSender(4);
+        $mail->from($sender->email, $sender->name);
+
+        // Subject
+        $mail->subject("Attn: {$data['row']->full_name}, Enquiry Process Confirmation");
+
+        // Recipients
+        if ($data['row']->validated_at === null) {
+            $mail->to(['admin@wlisuk.com']);
+        } else {
+            $mail->to([$data['row']->email, 'admin@wlisuk.com']);
         }
-        // $pdf = PDF::loadView('enquiryform.pdfs.processed',compact('data'));
 
-        $formType = isset($data['row']->form_type)? "enquiryform.pdfs.".$data['row']->form_type: "enquiryform.pdfs.processed";
-        $pdf = PDF::loadView($formType,compact('data'));
-        $filename = "ENQ. {$data['enquiry']->id} -Enquiry confirmation-{$data['row']->full_name}.pdf";
-        $maal->attachData($pdf->stream(),$filename);
+        // Generate PDF
+        $formType = $data['row']->form_type 
+            ? "enquiryform.pdfs." . $data['row']->form_type 
+            : "enquiryform.pdfs.processed";
 
+        $pdf = Pdf::loadView($formType, compact('data'));
+
+        $filename = "ENQ. {$data['enquiry']->id} - Enquiry Confirmation - {$data['row']->full_name}.pdf";
+
+        // Attach PDF
+        $mail->attachData($pdf->output(), $filename);
+
+        // Save PDF to server and record in Document table
         $this->createDocument($filename);
 
-
+        // Log communication
         CommunicationLog::create([
-            'to'=>$data['enquiry']->full_name,
-            'description'=>"Enquiry processed",
-            'enquiry_id'=> $data['enquiry']->id,
-            'email_content'=>$email_content,
-            'basic_info_id'=>null,
+            'to' => $data['enquiry']->full_name,
+            'description' => "Enquiry processed",
+            'enquiry_id' => $data['enquiry']->id,
+            'email_content' => $email_content,
+            'basic_info_id' => null,
         ]);
 
-        return $maal;
+        return $mail;
     }
 
-
-    public function createDocument($filename)
+        /**
+         * Save PDF to server and store in Document table
+         *
+         * @param string $filename
+         * @return string
+         */
+        /**
+     * Save PDF to server and store in Document table
+     *
+     * @param string $filename
+     * @return string
+     */
+    public function createDocument(string $filename)
     {
-        $client_id = $this->data['enquiry']->id;
+        $data = $this->data;
+        $client_id = $data['enquiry']->id;
 
-        $file_path = "/uploads/files/";
-        $file_name = time() . "_{$filename}";
+        $filePath = 'uploads/files/enquiryprocessed/';
+        $fileName = time() . "_{$filename}";
+        $fullPath = public_path($filePath);
 
-        $path = public_path('uploads/files/enquiryprocessed');
-        if (!File::isDirectory($path)) {
-
-            File::makeDirectory($path, 0777, true, true);
+        // Create directory if not exists
+        if (!File::isDirectory($fullPath)) {
+            File::makeDirectory($fullPath, 0777, true, true);
         }
 
+        // Generate PDF
+        $formType = $data['row']->form_type 
+            ? "enquiryform.pdfs." . $data['row']->form_type 
+            : "enquiryform.pdfs.processed";
 
+        $pdf = Pdf::loadView($formType, compact('data'));
 
-        $db = "/enquiryprocessed/" . $file_name;
-        $data = $this->data;
-        // $pdf = PDF::loadView("enquiryform.pdfs.processed", compact('data'));
-$formType = isset($data['row']->form_type)? "enquiryform.pdfs.".$data['row']->form_type: "enquiryform.pdfs.processed";
-        $pdf = PDF::loadView($formType,compact('data'));
-        $pdf->save(public_path($file_path . $db));
+        // Save PDF to server
+        $pdf->save($fullPath . $fileName);
 
-        $document                    = new Document();
-        $document->enquiry_id     = $client_id;
-        $document->name         = $filename;
-        $document->note       = "Generated on " . date("d/M/Y H:i:s");
-        $document->documents      = $db;
-        $document->ftype      = 'pdf';
-        $document->created_by        = Auth::user()->id;
-        $document->created           = now();
-        $document->modified          = now();
-        $document->modified_by       = Auth::user()->id;
-
+        // Store document record
+        $document = new Document();
+        $document->enquiry_id  = $client_id;
+        $document->name        = $filename;
+        $document->note        = "Generated on " . now()->format('d/M/Y H:i:s');
+        $document->documents   = "/enquiryprocessed/" . $fileName;
+        $document->ftype       = 'pdf';
+        $document->created_by  = Auth::id();   // REQUIRED
+        $document->modified_by = Auth::id();   // REQUIRED
+        $document->created     = now();
+        $document->modified    = now();
         $document->save();
 
-        return $db;
+        return $filePath . $fileName;
     }
+
 }

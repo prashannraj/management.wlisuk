@@ -54,14 +54,14 @@
 
         <main class='mt-4'>
             <h1 class='display-4 text-center text-underlined'><u>{{$data['form']->title}}</u></h1>
-            <form action="{{ $data['form']->form_url }}" method="POST" enctype="multipart/form-data" >
+           <form action="{{ route('enquiryform.fillup', $data['form']->uuid) }}" method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="form_id" value="{{$data['form']->id}}">
                 @csrf
                 @includeIf('enquiryform.forms.'.$data['form']->type,['row'=>null])
-                <p>
+                {{-- <p>
                     <div class="g-recaptcha" data-sitekey="6LeKX5gqAAAAAPwgUlPo9fSCFR9Ljq2sRv6-jo2q"></div>
                 </p>
-                {!! isError($errors, 'g-recaptcha-response',"Please solve the captcha and try again.") !!}
+                {!! isError($errors, 'g-recaptcha-response',"Please solve the captcha and try again.") !!} --}}
                 <div class="form-group container">
                     <input class="form-check-input" type="checkbox" id="allow" name='allow' value="1" />
                     <label for="allow">

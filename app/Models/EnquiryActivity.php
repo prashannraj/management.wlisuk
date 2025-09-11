@@ -36,13 +36,21 @@ class EnquiryActivity extends Model
 
 	public function getStatusAttrAttribute()
 	{
-		$activity_status = Config::get('constant.ENQUIRY_STATUS');
-		foreach($activity_status as $key => $st){
+		$activity_status = Config::get('constant.ENQUIRY_STATUS', []);
+
+		if (!is_array($activity_status)) {
+			return '';
+		}
+
+		foreach ($activity_status as $key => $st) {
 			if ($this->status == $key) {
 				return $st;
 			}
 		}
+
+		return '';
 	}
+
 	
 	public function getProcessStatusAttribute()
 	{

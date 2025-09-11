@@ -2,40 +2,35 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\DataTables\RawInquiryDataTable;
+use App\Http\Controllers\Controller;
 use App\Mail\EnquiryProcessedMail;
-use App\Mail\EnquiryVerifyMail;
+use App\Models\RawInquiry;
+use App\Models\IsoCountry;
+use App\Models\Enquiry;
+use App\Models\EnquiryType;
+use App\Models\User;
+use App\Models\EnquiryActivity;
 use App\Models\ClientAddressDetail;
 use App\Models\CompanyInfo;
-use App\Models\Enquiry;
-use App\Models\EnquiryActivity;
-use App\Models\EnquiryType;
-use App\Models\IsoCountry;
-use App\Models\RawInquiry;
-use App\Models\User;
-use Illuminate\Contracts\Session\Session;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
-use PDF;
-use Spatie\Newsletter\NewsletterFacade;
-use Str;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Str;
+use App\Http\Controllers\Admin\BankController;
 
 class RawInquiryController extends BaseController
-{
+{   
+    protected $title;
+    protected $country_code;
+    protected $enquiry_type;
+    protected $users;
     /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
+     * Constructor to initialize common data.
      */
 
-    private $title;
-    private $country_code;
-    private $enquiry_type;
-    private $users;
-
-    public function __construct()
+     public function __construct()
     {
         $this->title = $this->getTitle();
 
@@ -44,110 +39,126 @@ class RawInquiryController extends BaseController
         $this->users = User::select('id', 'username')->orderBy('username', 'asc')->get();
     }
 
-
-    public function index(Request $request,RawInquiryDataTable $dataTable)
-    {
-
-        return $dataTable->with(['startdate'=>$request->startdate,'enddate'=>$request->enddate,'status'=>$request->status])->render('rawinquiry.index');
-
-
-    }
-
     /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
+     * Display a listing of the resource.
      */
-    public function create()
+    public function index(Request $request)
     {
-        //
-    }
+        $query = RawInquiry::query()->latest();
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
-    public function store(Request $request)
-    {
-        //
-        $data = $this->validate($request,[
-            'title','f_name','m_name','l_name',
-            'country_iso_mobile','country_iso_tel'
-            ,'tel','mobile','email','additional_details'
-        ]);
-
-        $inq = RawInquiry::create($data);
-
-        if($request->redirect_to){
-            return redirect($request->redirect_to);
+        // Date filter
+        if ($request->startdate && $request->enddate) {
+            $start = \Carbon\Carbon::parse($request->startdate)->startOfDay();
+            $end = \Carbon\Carbon::parse($request->enddate)->endOfDay();
+            $query->whereBetween('updated_at', [$start, $end]);
         }
-    }
 
-    public function verify($uuid){
-        $inq = RawInquiry::whereUniqueCode($uuid)->firstOrFail();
-        $inq->validated_at = now();
-        $inq->save();
-        $data['companyinfo'] = \App\Models\CompanyInfo::first();
-        NewsletterFacade::subscribeOrUpdate($inq->email, ['FNAME'=>$inq->f_name." ".$inq->m_name, 'LNAME'=>$inq->l_name,'ADDRESS'=>$inq->full_address,'PHONE'=>$inq->contact_number]);
-        return view('enquiryform.verified',compact('data'));
+        // Processed filter (based on relation enquiry)
+        if ($request->status === 'processed') {
+            $query->whereHas('enquiry');
+        } elseif ($request->status === 'not_processed') {
+            $query->whereDoesntHave('enquiry');
+        }
+
+        $inquiries = $query->paginate(10);
+
+        return view('rawinquiry.index', compact('inquiries'));
     }
 
     /**
-     * Display the specified resource.
-     *
-     * @param  \App\RawInquiry  $rawInquiry
-     * @return \Illuminate\Http\Response
+     * Update the specified resource in storage.
      */
-    public function show( $id)
+    public function update(Request $request, $id)
     {
-        //
-        // dd(RawInquiry::all());
-        $enq = RawInquiry::findOrFail($id);
-        // dd($enq);
-        $data['row']= $enq;
-        $data['enquiry'] = $enq;
-        return view("rawinquiry.show",compact('data'));
+        $inq = RawInquiry::findOrFail($id);
+        $data = $request->all();
+
+        if ($request->hasFile('refusal_document')) {
+            $file = $request->file('refusal_document');
+            $data['refusal_document'] = $file->store('refusal_document', 'public');
+        }
+
+        $inq->update($data);
+
+        return redirect()->route('rawenquiry.index')->with('success', 'Successfully updated');
     }
 
     /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  \App\RawInquiry  $rawInquiry
-     * @return \Illuminate\Http\Response
+     * Remove the specified resource from storage.
+     */
+    public function destroy($id)
+    {
+        $inq = RawInquiry::findOrFail($id);
+        $inq->delete();
+        return back()->with('success', 'Successfully deleted');
+    }
+
+    /**
+     * Toggle active/inactive status.
+     */
+    public function toggle($id)
+    {
+        $inq = RawInquiry::findOrFail($id);
+        $inq->active = !$inq->active;
+        $inq->save();
+
+        return back()->with('success', 'Status updated successfully');
+    }
+
+    /**
+     * Add note / instruction to inquiry.
+     */
+    public function addNote(Request $request, $id)
+    {
+        $rawInquiry = RawInquiry::findOrFail($id);
+        $rawInquiry->additional_details = $request->input('note'); // Save note
+        if ($request->input('process')) {
+            // Mark as processed
+            $rawInquiry->status = 'processed';
+        }
+        $rawInquiry->save();
+
+        return redirect()->route('rawenquiry.process', $id)->with('success', 'Instruction added successfully!');
+    }
+
+    /**
+     * Show details of a specific inquiry.
+     */
+   public function show($id)
+    {
+        $row = RawInquiry::findOrFail($id);
+        $data['row'] = $row;
+        $data['countries'] = IsoCountry::orderBy("order", "desc")->get();
+        return view('rawinquiry.show', compact('data'));
+    }
+
+
+    /**
+     * Show edit form for a specific inquiry.
      */
     public function edit($id)
     {
         //
         $data['row'] = RawInquiry::findOrFail($id);
-        $data['countries'] = $this->getCountryCode();
+         $data['countries'] = $this->getCountryCode();
         return view('rawinquiry.edit',compact('data'));
 
     }
 
-    public function addNote(Request $request, $id)
+   
+
+    /**
+     * Show process form for a specific inquiry.
+     */
+    public function process($id)
     {
-    $rawInquiry = RawInquiry::find($id);
-    $rawInquiry->notes = $request->input('note');
-    if ($request->input('process')) {
-        // Process the raw inquiry here
-        // For example:
-        $rawInquiry->status = 'processed';
-    }
-    $rawInquiry->save();
-    return redirect()->route('rawenquiry.process', $id)->with('success', 'Instruction added successfully!');
-    }
-
-
-
-
-    public function process($id){
-        $data         = [];
-        $rawInquiry = RawInquiry::findOrFail($id); // this is for note retrive
+        $data['row'] = RawInquiry::findOrFail($id);
         $data['country_code'] = IsoCountry::all();
         $data['panel_name'] = 'Edit Enquiry';
-        $data['row']        = RawInquiry::findOrFail($id);
+        $data['countries'] = $this->getCountryCode();
+        $data['enquiry_type'] = $this->enquiry_type;
+        $data['users'] = $this->users;
+        $data['title'] = $this->title;
         $data['notes'] = $data['row']->notes;
         $enq = Enquiry::where("raw_enquiry_id",$id)->first();
         if($enq){
@@ -156,202 +167,104 @@ class RawInquiryController extends BaseController
         if (!$data['row']) {
             return 'No data found';
         }
-        $data['title']        = $this->title;
-        $data['country_code'] = $this->country_code;
-        $data['enquiry_type'] = $this->enquiry_type;
-        $data['users']        = $this->users;
-        $data['countries'] = IsoCountry::all(); // this field added for toenquiry form country name dispaly
-       // $data['enq_number'] = $data['row']->enq_number; // retrieve enq_number from RawInquiry model
-        return view('rawinquiry.toenquiry', compact('data'));
-    }
 
 
-    public function storeToEnquiry(Request $request,$id){
-
-            $data = $this->validate($request,[
-                'title'=>'required',
-                'first_name'=>'required',
-                'surname'=>'required',
-                'middle_name'=>'nullable',
-                'mobile'=>'required',
-                'email'=>'required',
-                'enquiry_type_id'=>'required',
-                'referral'=>'nullable',
-                'instruction'=>'nullable',
-                'note'=>'nullable',
-                'enquiry_assigned_to'=>'required',
-                'country_mobile'=>'required',
-                'country_tel'=>'nullable','status'=>'required',
-                'surname'=>'required',
-                'status'=>'required',
-                'address'=>'required',
-                'notes'=>'required',
-                'postal_code'=>'nullable',
-                'country_id'=>'required',
-                'iso_country_id'=>'nullable'
-            ]);
-
-            $data['mobile'] = preg_replace('/[^\x20-\x7E]/', '', $data['mobile']);
-            $data['country_code'] = IsoCountry::all();
-            $data['raw_enquiry_id']= $id;
-            $data['modified_by'] = Auth::user()->id;
-            $data['department_id'] = 1;
-            // $data['nationality'] = optional(IsoCountry::find($data['iso_country_id']))->title;
-            //$data['basic_info_id'] = $id;
-            $data['row'] = RawInquiry::find($id);
-            $data['companyinfo'] = CompanyInfo::first();
-            $data['company_info'] =$data['companyinfo'];
-            $data['countries'] = IsoCountry::all();
-            $enquiry = Enquiry::find($id);
-            $data['enquiry'] = $enquiry;
-            $data['processed'] = true;
-            // dd($request);
-            $formType = isset($data['row']->form_type)? "enquiryform.pdfs.".$data['row']->form_type: "enquiryform.pdfs.processed";
-
-            if($request->action == "preview"){
-
-                $data['processed'] = false;
-
-                $pdf = PDF::loadView($formType, compact('data'));
-                $filename = "ENQ-Preview"."Enquiry confirmation-{$data['row']->full_name}.pdf";
-                $path = storage_path('uploads/files/enquiryprocessed');
-                //$filename = "Enquiry confirmation-{$data['row']->full_name}.pdf";
-
-                return $pdf->stream($filename);
-            }
-
-            $result = Enquiry::create($data);
+        return view('rawinquiry.toenquiry',compact('data'));  
 
 
-
-            if ($result) {
-                $activity = new EnquiryActivity();
-                $activity->enquiry_list_id = $result->id;
-                $activity->status = 1;
-                $activity->note = '';
-                $activity->created_by = Auth::user()->id;
-                $activity->processing = 0;
-                $activity->save();
-                if($data['country_id']!=null && $data['address']!=null){
-                    ClientAddressDetail::create([
-                        'overseas_address'=>$data['address'],
-                        'enquiry_id'=>$result->id,
-                        'overseas_postcode'=>$data['postal_code'],
-                        'iso_countrylist_id'=>$data['country_id'],
-                        'created_by'=>auth()->user()->id,
-                        'modified_by'=>auth()->user()->id
-                    ]);
-                }
-                if($request->send_processed_mail){
-                   $data['enquiry'] = $result;
-                    Mail::send(new EnquiryProcessedMail($data));
-                }
-                return redirect()->route('enquiry.list')->with('success', 'Enquiry has been created.');
-            } else {
-                return redirect()->back()->with('success', 'Enquiry has been created.');
-            }
-
-    }
-
-   /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\RawInquiry  $rawInquiry
-     * @return \Illuminate\Http\Response
+}
+    /**
+     * Store the inquiry as an official enquiry.
      */
-    public function update(Request $request, $id)
+    
+    public function storeToEnquiry(Request $request, int $id)
     {
-        //
-        $inq = RawInquiry::findOrFail($id);
-        // $inq->update($request->all());
-        $data = $request->all();
-        $data['country_iso_mobile'] = $data['country_code'];
-        $data['mobile'] = $data['contact_number'];
-        //$data['additional_details'] = $data['enquiry'];
-        if($request->resend_email){
-            $data['validated_at'] = null;
-            do {
-                $data['unique_code'] = Str::random(8);
-            } while (RawInquiry::whereUniqueCode($data['unique_code'])->count() != 0);
-            $inq->unique_code = $data['unique_code'];
-            $inq->save();
-            $r['row'] = $inq;
-            $r['companyinfo'] = CompanyInfo::firstOrFail();
-            Mail::send(new EnquiryVerifyMail($r));
+        // Validate request data
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'first_name' => 'required|string|max:255',
+            'surname' => 'required|string|max:255',
+            'middle_name' => 'nullable|string|max:255',
+            'mobile' => 'required|string|max:20',
+            'email' => 'required|email|max:255',
+            'enquiry_type_id' => 'required|integer',
+            'referral' => 'nullable|string|max:255',
+            'instruction' => 'nullable|string',
+            'note' => 'nullable|string',
+            'enquiry_assigned_to' => 'required|integer',
+            'country_mobile' => 'required|string|max:10',
+            'country_tel' => 'nullable|string|max:15',
+            'status' => 'required|string|max:50',
+            'address' => 'required|string',
+            'notes' => 'required|string',
+            'postal_code' => 'nullable|string|max:20',
+            'country_id' => 'required|integer|exists:iso_countrylists,id',
+            'iso_country_id' => 'nullable|integer|exists:iso_countrylists,id',
+
+        ]);
+
+        // Clean mobile number
+        $validated['mobile'] = preg_replace('/[^\x20-\x7E]/', '', $validated['mobile']);
+
+        // Prepare additional data
+        $rawInquiry = RawInquiry::findOrFail($id);
+        $validated['raw_enquiry_id'] = $id;
+        $validated['modified_by'] = Auth::id();
+        $validated['department_id'] = 1;
+
+        $validated['row'] = $rawInquiry;
+        $validated['companyinfo'] = CompanyInfo::first();
+        $validated['company_info'] = $validated['companyinfo'];
+        $validated['countries'] = IsoCountry::all();
+        $validated['processed'] = true;
+
+        $formType = $rawInquiry->form_type 
+            ? "enquiryform.pdfs." . $rawInquiry->form_type 
+            : "enquiryform.pdfs.processed";
+
+        // Preview PDF if requested
+        if ($request->action === 'preview') {
+            $validated['processed'] = false;
+            $pdf = PDF::loadView($formType, ['data' => $validated]);
+            $filename = "ENQ-Preview-Enquiry-Confirmation-{$rawInquiry->full_name}.pdf";
+            return $pdf->stream($filename);
         }
 
-        if($inq->form_type == 'immigration'):
-            if($request->hasFile('refusal_document')){
-                $file = $request->file('refusal_document');
-                $filename = time().'-'.$file->getClientOriginalName();
-                $data['refusal_document']=  Storage::disk('uploads')->putFileAs('refusal_document',$file,$filename);
+        // Store enquiry
+        $enquiry = Enquiry::create($validated);
+
+        if ($enquiry) {
+            // Log activity
+            EnquiryActivity::create([
+                'enquiry_list_id' => $enquiry->id,
+                'status' => 1,
+                'note' => '',
+                'created_by' => Auth::id(),
+                'processing' => 0,
+            ]);
+
+            // Store client address if provided
+            if (!empty($validated['country_id']) && !empty($validated['address'])) {
+                ClientAddressDetail::create([
+                    'overseas_address' => $validated['address'],
+                    'enquiry_id' => $enquiry->id,
+                    'overseas_postcode' => $validated['postal_code'] ?? null,
+                    'iso_countrylist_id' => $validated['country_id'],
+                    'created_by' => Auth::id(),
+                    'modified_by' => Auth::id(),
+                ]);
             }
 
-            if($request->hasFile('refusal_email')){
-
-                $file = $request->file('refusal_email');
-                $filename = time().'-'.$file->getClientOriginalName();
-
-                $data['refusal_email']=  Storage::disk('uploads')->putFileAs('refusal_email',$file,$filename);
-
-            }
-            if($request->hasFile('appellant_passport')){
-                $file = $request->file('appellant_passport');
-                $filename = time().'-'.$file->getClientOriginalName();
-                $data['appellant_passport']=  Storage::disk('uploads')->putFileAs('appellant_passport',$file,$filename);
-            }
-            if($request->hasFile('proff_address')){
-                $file = $request->file('proff_address');
-                $filename = time().'-'.$file->getClientOriginalName();
-                $data['proff_address']=  Storage::disk('uploads')->putFileAs('proff_address',$file,$filename);
+            // Send processed mail if requested
+            if ($request->send_processed_mail) {
+                $validated['enquiry'] = $enquiry;
+                Mail::send(new EnquiryProcessedMail($validated));
             }
 
-            if($request->hasFile('additional_document')){
-                $oldAdditionalData = isset($inq->additional_document)? json_decode($inq->additional_document):[];
-                // $additional_files = [];
-                foreach($request->file('additional_document') as $files){
-                    $file = $files;
-                    $filename = time().'-'.$file->getClientOriginalName();
+            return redirect()->route('enquiry.list')->with('success', 'Enquiry has been created.');
+        }
 
-                    $eachFile =  Storage::disk('uploads')->putFileAs('additional_document',$file,$filename);
-                    array_push($oldAdditionalData, $eachFile);
-                }
-                $data['additional_document'] = json_encode($oldAdditionalData);
-            }
-        endif;
-
-        $inq->update($data);
-        $inq->refusalLetterDate = $request->input('refusalLetterDate');
-        $inq->refusalReceived = $request->input('refusalReceived');
-        $inq->birthDate = $request->input('birthDate');
-        $inq->save();
-
-        return redirect()->route('rawenquiry.index')->
-        with('success',"Successfully updated the data");
-
+        return redirect()->back()->with('error', 'Failed to create enquiry.');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  \App\RawInquiry  $rawInquiry
-     * @return \Illuminate\Http\Response
-     */
-    public function destroy($id)
-    {
-        //
-        $inq = RawInquiry::findOrFail($id);
-        $inq->delete();
-        return back()->with("success","Successfully deleted");
-    }
-
-    public function toggle($id)
-    {
-        //
-        $inq = RawInquiry::findOrFail($id);
-        $inq->active =! $inq->active;
-        $inq->save();
-        return back()->with("success","Successfully toggled");
-    }
 }

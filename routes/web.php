@@ -76,6 +76,7 @@ use App\Http\Controllers\Admin\AssessmentSectionController;
 
 
 
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -162,7 +163,13 @@ Route::middleware('admin')->group(function () {
 	Route::resource('employeeaddress', EmployeeAddressController::class)->only(['store', 'edit', 'update']);
 	Route::resource('employeeemergency', EmployeeEmergencyContactController::class)->only(['store', 'edit', 'update']);
 	Route::resource('enquiryform', EnquiryFormController::class);
-	Route::get('/enquiryform/display/{uuid}', [EnquiryFormController::class, 'display'])->name('enquiryform.display');
+	Route::match(['GET', 'POST'], '/enquiryform/display/{uuid}', [EnquiryFormController::class, 'display'])->name('enquiryform.display');
+	Route::post('/enquiryform/fillup/{uuid}', [EnquiryFormController::class, 'fillup'])->name('enquiryform.fillup');
+	Route::get('/rawenquiry/verify/{code}', [EnquiryFormController::class, 'verify'])->name('rawenquiry.verify');
+
+
+
+	
 
 
 	Route::resource('employmentinfo', EmploymentInfoController::class)->only(['show', 'store', 'edit', 'update']);
@@ -187,12 +194,19 @@ Route::middleware('admin')->group(function () {
 	Route::resource('employeedocument', EmployeeDocumentController::class)->except(['index']);
 
 
-		// 🔹 Raw Inquiry
-	Route::resource('rawenquiry', RawInquiryController::class);
-	Route::get('rawenquiry/toggle/{id}', [RawInquiryController::class, 'toggle'])->name('rawenquiry.toggle');
-	Route::post('rawenquiry/{id}/add-note', [RawInquiryController::class, 'addNote'])->name('rawenquiry.add-note');
-	Route::get('rawenquiry/process/{id}', [RawInquiryController::class, 'process'])->name('rawenquiry.process');
-	Route::post('rawenquiry/process/{id}', [RawInquiryController::class, 'storeToEnquiry'])->name('rawenquiry.process');
+	// 🔹 Raw Inquiry
+		Route::resource('rawenquiry', RawInquiryController::class);
+
+		// Extra routes outside resource
+		Route::get('rawenquiry/toggle/{id}', [RawInquiryController::class, 'toggle'])->name('rawenquiry.toggle');
+		Route::post('rawenquiry/{id}/add-note', [RawInquiryController::class, 'addNote'])->name('rawenquiry.add-note');
+
+		// Process routes with distinct names for GET and POST
+		Route::get('rawenquiry/process/{id}', [RawInquiryController::class, 'process'])->name('rawenquiry.process');
+		Route::post('rawenquiry/process/{id}', [RawInquiryController::class, 'storeToEnquiry'])->name('rawenquiry.process');
+
+	
+
 
 	// 🔹 Notifications
 	Route::resource('notification', NotificationController::class)->only(['show', 'index']);
@@ -244,6 +258,7 @@ Route::middleware('admin')->group(function () {
 		Route::get('/visa/{id}', [VisaController::class, 'ajaxShow']);
 
 		Route::get('/enquiries', [EnquiryController::class, 'ajaxindex'])->name("ajax.enquiry.index");
+		
 		Route::get('/invoices', [InvoiceController::class, 'ajaxindex']);
 		Route::get('/servicefees', [ServicefeeController::class, 'ajaxindex'])->name('ajax.servicefee.index');
 		Route::get('/partners', [PartnerController::class, 'ajaxindex'])->name('ajax.partner.index');
@@ -260,13 +275,16 @@ Route::middleware('admin')->group(function () {
 		// Enquiry
 		Route::prefix('enquiry')->group(function () {
 		Route::get('/', [EnquiryController::class, 'index'])->name('enquiry.list');
-		Route::get('/datatable', [EnquiryController::class, 'datatable'])->name('enquiry.data');
+		Route::get('/data', [EnquiryController::class, 'datatable'])->name('enquiry.data');
+		//Route::get('/datatable', [EnquiryController::class, 'datatable'])->name('enquiry.data');
 		Route::get('/status', [EnquiryController::class, 'status'])->name('enquiry.status');
 		Route::get('/add', [EnquiryController::class, 'create'])->name('enquiry.create');
 		Route::post('/save', [EnquiryController::class, 'store'])->name('enquiry.save');
 		Route::post('/update-enquiry-status', [EnquiryController::class, 'statusUpdate'])->name('enquiry.postStatusUpdate');
 		Route::get('/{id}/show', [EnquiryController::class, 'show'])->name('enquiry.show');
 		Route::post('/{id}/show', [EnquiryController::class, 'unlink'])->name('enquiry.unlink');
+		Route::delete('/{id}/delete', [EnquiryController::class, 'destroy'])->name('enquiry.destroy');
+
 
 		// Logs
 		Route::get('/{id}/log', [EnquiryController::class, 'indexLog'])->name('enquiry.log');

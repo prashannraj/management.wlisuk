@@ -128,6 +128,7 @@ return [
     'Session' => Illuminate\Support\Facades\Session::class,
     'Setting' => Anlutro\LaravelSettings\Facade::class,
     'PDF' => Barryvdh\DomPDF\Facade\Pdf::class,
+    'Excel' => Maatwebsite\Excel\Facades\Excel::class,
 ],
 
 

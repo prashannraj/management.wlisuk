@@ -20,7 +20,7 @@ use App\Models\IsoCountry;
 use App\Models\Partner;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
-use PDF;
+use Barryvdh\DomPDF\Facade\Pdf as PDF;
 
 class AdmissionApplicationController extends BaseController
 {

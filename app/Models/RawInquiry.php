@@ -10,7 +10,7 @@ class RawInquiry extends Model
 {
     //
     protected $fillable = [
-        'refusalLetterDate', 'refusalReceived', 'applicationLocation', 'uan', 'ho_ref', 'title', 'other_text', 'f_name', 'm_name', 'l_name', 'birthDate',
+        'refusalLetterDate', 'refusalreceivedDate', 'applicationLocation', 'uan', 'ho_ref', 'title', 'other_text', 'f_name', 'm_name', 'l_name', 'birthDate',
          'country_iso_mobile','mobile', 'country_code', 'email', 'contact_email', 'appellant_nation', 'appellant_address', 'has_uk_sponsor', 'sponsor_name', 'sponsor_relationship',
         'sponsor_email', 'sponsor_phone', 'sponsor_address', 'sponsor_city', 'sponsor_preferred', 'sponsor_preEmail', 'preparedby', 'visa', 'prepared_email', 'appellant_email', 'authorise','authorise_name', 'form_id',
         'extra_details', 'unique_code','iso_country_id','country_id','address', 'postal_code', 'method_decision_received', 'refusal_document','additional_details', 'extra_details', 'appellant_passport', 'proff_address', 'enquiry', 'notes', 'status', 'form_type'
@@ -32,47 +32,53 @@ class RawInquiry extends Model
 
     public function getRefusalDocumentUrlAttribute()
     {
-        if (Storage::disk('uploads')->exists($this->refusal_document)) {
-                return route('fileurl', base64_encode($this->refusal_document));
+        if ($this->refusal_document && Storage::disk('uploads')->exists($this->refusal_document)) {
+            return route('fileurl', base64_encode($this->refusal_document));
         }
+        return null; // or '' if you prefer
     }
+
 
     public function getAppellantPassportUrlAttribute()
     {
-        if (Storage::disk('uploads')->exists($this->appellant_passport)) {
-                return route('fileurl', base64_encode($this->appellant_passport));
+        if ($this->appellant_passport && Storage::disk('uploads')->exists($this->appellant_passport)) {
+            return route('fileurl', base64_encode($this->appellant_passport));
         }
+        return null;
     }
 
-     public function getProffAddressUrlAttribute()
+    public function getProffAddressUrlAttribute()
     {
-        if (Storage::disk('uploads')->exists($this->proff_address)) {
-                return route('fileurl', base64_encode($this->proff_address));
+        if ($this->proff_address && Storage::disk('uploads')->exists($this->proff_address)) {
+            return route('fileurl', base64_encode($this->proff_address));
         }
+        return null;
     }
-
 
     public function getRefusalEmailUrlAttribute()
     {
-        if (Storage::disk('uploads')->exists($this->refusal_email)) {
-                return route('fileurl', base64_encode($this->refusal_email));
+        if ($this->refusal_email && Storage::disk('uploads')->exists($this->refusal_email)) {
+            return route('fileurl', base64_encode($this->refusal_email));
         }
+        return null;
     }
+
     public function getAdditionalDocumentUrlAttribute()
     {
         $filePaths = [];
         if(isset($this->additional_document)){
             $data = json_decode($this->additional_document);
-            if(count($data)> 0){
+            if(count($data) > 0){
                 foreach($data as $eachFile){
-                    if (Storage::disk('uploads')->exists($eachFile)) {
-                        array_push($filePaths, route('fileurl', base64_encode($eachFile)));
+                    if($eachFile && Storage::disk('uploads')->exists($eachFile)) {
+                        $filePaths[] = route('fileurl', base64_encode($eachFile));
                     }
                 }
             }
         }
         return $filePaths;
     }
+
 
     public function getFullNameAttribute(){
         $str = "";
@@ -85,13 +91,13 @@ class RawInquiry extends Model
 
     }
 
-    public function getValidatedStatusAttribute(){
-        if($this->validated_at == null){
-            return "Email not verified";
-        }
-        else
-        return "Email verified on ".$this->validated_at->format("d M Y h:i:s");
+    public function getValidatedStatusAttribute()
+    {
+        return $this->validated_at
+            ? "Email verified on " . $this->validated_at->format("d M Y h:i:s")
+            : "Email not verified";
     }
+
 
     public function form(){
         return $this->belongsTo(EnquiryForm::class,'form_id','id');
@@ -148,8 +154,9 @@ class RawInquiry extends Model
          return "";
     }
 
-    public function enquiry(){
-        return $this->hasOne(Enquiry::class,'raw_enquiry_id');
+    public function enquiry()
+    {
+        return $this->hasOne(Enquiry::class, 'raw_enquiry_id');
     }
 
     public function getFullAddressAttribute(){

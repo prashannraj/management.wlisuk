@@ -48,148 +48,56 @@ class EnquiryController extends BaseController
     private $enquiry_type;
     private $users;
 
-    public function __construct(EnquiryInterface $enquiry)
+    public function __construct()
     {
         $this->middleware('auth');
-        $this->enquiry = $enquiry;
         $this->title = $this->getTitle();
         $this->country_code = $this->getCounrtyCode();
         $this->enquiry_type = EnquiryType::select('id', 'title')->get();
         $this->users = User::select('id', 'username')->orderBy('username', 'asc')->get();
     }
+
     /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
+     * Display a listing of the resource using Bootstrap table with pagination
      */
-    public function index()
+    public function index(Request $request)
     {
-        // Auth::user()->authorizeRoles('admin');
         $data = [];
         $data['panel_name'] = 'List of Enquiries';
+        $data['enquiries'] = Enquiry::with(['type', 'assigned_user'])
+                                ->orderBy('id', 'desc')
+                                ->paginate(10); // 10 per page
         $data['enquiry_type'] = EnquiryType::all();
         return view('admin.inquiry.list', compact('data'));
     }
 
-    public function unlink($id){
+
+    
+
+    public function unlink($id)
+    {
         $enq = Enquiry::findOrFail($id);
         $enq->client_id = null;
         $enq->save();
-        return back()->with('success','Successfully unlinked the enquiry');
+        return back()->with('success', 'Successfully unlinked the enquiry');
     }
 
-    public function ajaxIndex(Request $request)
-    {
-        $search = $request->q ?? "";
-
-        $data = \App\Models\Enquiry::select("*");
-        $data->where('first_name', 'LIKE', '%' . $search . "%");
-        if($request->unlinked){
-            $data->where('client_id',null);
-        }
-        $data->limit(6);
-        return response()->json($data->get());
-    }
-
-    public function datatable(Request $request)
-    {
-        if ($request->ajax()) {
-            $enquiry = new Enquiry();
-            $enquiry_type = EnquiryType::pluck('id')->toArray();
-            if (isset($request->activity) && in_array($request->activity, ['new', 'follow_up', 'processed', 'closed', 'all'])) {
-                $latest_status = null;
-                if ($request->activity == 'new') {
-                    $latest_status = '1';
-                } elseif ($request->activity == 'follow_up') {
-                    $latest_status = '2';
-                } elseif ($request->activity == 'processed') {
-                    $latest_status = '3';
-                } elseif ($request->activity == 'closed') {
-                    $latest_status = '4';
-                } elseif ($request->activity == 'all') {
-                    $latest_status = null;
-                }
-                if ($latest_status) {
-                    $enquiry = $enquiry->where('latest_status', $latest_status);
-                }
-            }
-            if (isset($request->enquiry_type) && in_array($request->enquiry_type, $enquiry_type)) {
-                $enquiry = $enquiry->where('enquiry_type_id', $request->enquiry_type);
-            }
-
-            if ($request->status) {
-                $enquiry = $enquiry->where('status', $request->status);
-            } else {
-                $enquiry = $enquiry->where('status', "Active");
-            }
-
-            $data = $enquiry->orderBy('id', 'desc')->get();
-            // dd($data);
-            return Datatables::of($data)
-                // ->addIndexColumn()
-                ->addColumn('action', function ($row) {
-                    //$editUrl = route('enquiry.edit', ['id' => $row->id]);
-                    $viewUrl = route('enquiry.show', ['id' => $row->id]);
-                    $profileUrl = route('enquiry.dashboard', ['id' => $row->id]);
-                    $logUrl = route('enquiry.log', $row->id);
-                    $deleteUrl = '';
-                    $btn =  '   <a href="' . $viewUrl . '" class="edit btn btn-primary btn-sm"><i class="fas fa-eye"></i></a> ' .
-                        // '   <a href="' . $editUrl . '" class="edit btn btn-success btn-sm"><i class="fas fa-edit"></i></a>' .
-                        '' .
-                        '   <a href="' . $logUrl . '" class="btn btn-info btn-sm" >
-                                    <i class="fas fa-cog"></i>
-                                    </a>' .
-                        '   <a href="' . $profileUrl . '" class="edit btn btn-success btn-sm"><i class="fas fa-address-card"></i></a>';
-                    return $btn;
-                })
-                ->rawColumns(['enquiry_type', 'action'])
-                ->make(true);
-        }
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
     public function create()
     {
-        $data = [];
-        $data['panel_name'] = 'Add New Enquiry';
-        $data['title'] = $this->title;
-        $data['country_code'] = $this->country_code;
-        $data['enquiry_type'] = $this->enquiry_type;
-        $data['users'] = $this->users;
+        $data = [
+            'panel_name' => 'Add New Enquiry',
+            'title' => $this->title,
+            'country_code' => $this->country_code,
+            'enquiry_type' => $this->enquiry_type,
+            'users' => $this->users
+        ];
         return view('admin.inquiry.create', compact('data'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function editBasicInfo()
-    {
-        $data = [];
-        $data['panel_name'] = 'Add New Enquiry';
-        $data['title'] = $this->title;
-        $data['country_code'] = $this->country_code;
-        $data['enquiry_type'] = $this->enquiry_type;
-        $data['users'] = $this->users;
-        return view('admin.inquiry.create', compact('data'));
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
     public function store(EnquiryStoreRequest $request)
     {
-        // dd($request->all());
         try {
-            $data = [
+            $enquiry = Enquiry::create([
                 'title' => $request->title,
                 'surname' => $request->surname,
                 'firstName' => $request->firstName,
@@ -203,110 +111,69 @@ class EnquiryController extends BaseController
                 'referral' => $request->referral,
                 'assignedto' => $request->assignedto,
                 'note' => $request->note
-            ];
-            $result = $this->enquiry->save($data);
-            if ($result) {
+            ]);
 
-                /** @var \Illuminate\Contracts\Auth\Authenticatable|null $user */
-                $user = Auth::user();
+            ClientAddressDetail::updateOrCreate(
+                ['enquiry_id' => $enquiry->id, 'basic_info_id' => null],
+                [
+                    'overseas_address' => $request->address,
+                    'overseas_postcode' => $request->postal_code,
+                    'iso_countrylist_id' => $request->country_id,
+                    'created_by' => Auth::id(),
+                    'modified_by' => Auth::id(),
+                ]
+            );
 
-                ClientAddressDetail::updateOrCreate(
-                    ['enquiry_id' => $result, 'basic_info_id' => null],
-                    [
-                        'overseas_address' => $request->address,
-                        'overseas_postcode' => $request->postal_code,
-                        'iso_countrylist_id' => $request->country_id,
-                        'created_by' => $user ? $user->id : null,
-                        'modified_by' => $user ? $user->id : null,
-                    ]
-                );
-
-
-
-                Session::flash('success', 'Enquiry has been created.');
-                return redirect()->route('enquiry.list');
-            } else {
-                Session::flash('failed', 'Enquiry has could not be created.');
-                return redirect()->back();
-            }
+            Session::flash('success', 'Enquiry has been created.');
+            return redirect()->route('enquiry.list');
         } catch (Exception $e) {
-            Session::flash('failed', 'Enquiry has could not be created. Due to ' . $e->getMessage() . ' error.');
+            Session::flash('failed', 'Enquiry could not be created: ' . $e->getMessage());
             return redirect()->back();
         }
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function show(Request $request, $id)
+    public function show($id)
     {
-
-        $data = [];
-        $enquiry = $this->enquiry->find($id);
-        $data['enquiry'] = $enquiry;
-        $data['panel_name'] = 'Detail of ' . $data['enquiry']->full_name ;
+        $data['enquiry'] = Enquiry::with(['type', 'addresses'])->findOrFail($id);
+        $data['countries'] = IsoCountry::orderBy("order", "desc")->get();
+        $data['panel_name'] = 'Detail of ' . $data['enquiry']->full_name;
         return view('admin.inquiry.show', compact('data'));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
+
     public function edit($id)
     {
-        $data         = [];
+        $data['row'] = Enquiry::findOrFail($id);
         $data['panel_name'] = 'Edit Enquiry';
-        $data['row']        = Enquiry::find($id);
-        if (!$data['row']) {
-            return 'No data found';
-        }
-        $data['title']        = $this->title;
+        $data['title'] = $this->title;
         $data['country_code'] = $this->country_code;
         $data['enquiry_type'] = $this->enquiry_type;
-        $data['users']        = $this->users;
+        $data['users'] = $this->users;
+
         return view('admin.inquiry.edit', compact('data'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
     public function update(EnquiryUpdateRequest $request, $id)
     {
         try {
-            $existing = $this->enquiry->find($id);
-
-            if (!$existing) {
-            }
-
-            $data = [
-                'title'        => $request->title,
-                'surname'      => $request->surname,
-                'firstName'    => $request->firstName,
-                'middleName'   => $request->middleName,
-                'mobile_code'  => $request->mobile_code,
-                'mobile'       => $request->mobile,
-                'tel_code'     => $request->tel_code,
-                'tel'          => $request->tel,
-                'email'        => $request->email,
+            $enquiry = Enquiry::findOrFail($id);
+            $enquiry->update([
+                'title' => $request->title,
+                'surname' => $request->surname,
+                'firstName' => $request->firstName,
+                'middleName' => $request->middleName,
+                'mobile_code' => $request->mobile_code,
+                'mobile' => $request->mobile,
+                'tel_code' => $request->tel_code,
+                'tel' => $request->tel,
+                'email' => $request->email,
                 'enquiry_type' => $request->enquiry_type,
-                'referral'     => $request->referral,
-                'assignedto'   => $request->assignedto,
-                'note'         => $request->note,
-                'status'       => $request->status
-            ];
+                'referral' => $request->referral,
+                'assignedto' => $request->assignedto,
+                'note' => $request->note,
+                'status' => $request->status
+            ]);
 
-            $result = $this->enquiry->update($data, $id);
-            // dd($result);
-            // dd($request);
             ClientAddressDetail::updateOrCreate(['enquiry_id' => $id, 'basic_info_id' => null], [
                 'overseas_address' => $request->address,
                 'overseas_postcode' => $request->postal_code,
@@ -314,33 +181,21 @@ class EnquiryController extends BaseController
                 'created_by' => Auth::id(),
                 'modified_by' => Auth::id(),
             ]);
-            if ($result) {
-                Session::flash('success', 'Enquiry has been updated.');
-                return redirect()->route('enquiry.list');
-            } else {
-                Session::flash('failed', 'Enquiry has could not be updated.');
-                return redirect()->back();
-            }
+
+            Session::flash('success', 'Enquiry has been updated.');
+            return redirect()->route('enquiry.list');
         } catch (Exception $e) {
-            Session::flash('failed', 'Enquiry has could not be updated. Due to ' . $e->getMessage() . ' error.');
+            Session::flash('failed', 'Enquiry could not be updated: ' . $e->getMessage());
             return redirect()->back();
         }
     }
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
     public function destroy($id)
     {
-        //
-        $e = Enquiry::findOrFail($id);
-        $e->delete();
+        $enquiry = Enquiry::findOrFail($id);
+        $enquiry->delete();
         return redirect()->route('enquiry.list')->with("success", "Successfully deleted enquiry");
     }
-
     public function status(Request $request)
     {
         $id = $request->id;
@@ -1006,7 +861,8 @@ class EnquiryController extends BaseController
 
         //save clientcare
         $cli_data['attachments'] = null;
-        RequestToMedical::updateOrCreate(['enquiry_id' => $id], $cli_data);
+        RequestToFinance::updateOrCreate(['enquiry_id' => $id], $cli_data);
+
 
         if ($preview) {
             $pdf = PDF::loadView("admin.inquiry.pdf.Request_access_to_finance_record", compact('data'));

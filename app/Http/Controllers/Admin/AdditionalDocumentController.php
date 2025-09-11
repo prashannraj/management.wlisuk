@@ -14,7 +14,7 @@ use App\Models\Visa;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Matrix\Operators\Addition;
-use PDF;
+use Barryvdh\DomPDF\Facade\Pdf as PDF;
 
 class AdditionalDocumentController extends BaseController
 {

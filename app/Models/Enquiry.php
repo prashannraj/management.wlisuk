@@ -60,7 +60,7 @@ class Enquiry extends Model
 	}
 
 	public function activities(){
-		return $this->hasMany(EnquiryActivity::class,'enquiry_list_id','id');
+		return $this->hasMany(EnquiryActivity::class,'enquiry_list_id','id') ?? collect();
 	}
 
 	public function studentContactDetail(){
@@ -149,6 +149,7 @@ class Enquiry extends Model
 	public function address(){
 		return $this->hasOne(ClientAddressDetail::class,'enquiry_id','id');
 	}
+
 
 	public function communicationlogs(){
 		return $this->hasMany(CommunicationLog::class,'enquiry_id','id');
