@@ -78,75 +78,52 @@ class LoginController extends Controller
 
 
     public function prelogin(Request $request)
-    {
-        $this->validateLogin($request);
-        $ip = $request->ip();
-        $correct = $this->attemptLogin($request);
-        
-        if ($correct) {
-            if ($request->email == 'conceptnull@yahoo.com') {
-                $user = User::where('email', $request->email)->first();
-                $arr = $user->allowed_devices ?: array();
-    
-                $arr[$request->ip()] = ['last_login' => Carbon::now()];
-    
-                $user->allowed_devices = $arr;
-                $user->save();
-                Auth::loginUsingId($user->id);
-    
-                return redirect()->intended($this->redirectPath());
-            }
+{
+    $this->validateLogin($request);
 
-            $this->guard()->logout();
+    if ($this->attemptLogin($request)) {
+        $user = User::where($this->username, $request->login)->first();
 
-            $request->session()->invalidate();
-
-            $request->session()->regenerateToken();
-
-            $user = User::where($this->username, $request->login)->first();
-            // dd($user);
-            $arr = $user->allowed_devices ? $user->allowed_devices : array();
-            // dd($arr);
-            // return $this->send_otp($request, $user);
-
-            if($user->username == "aashiz") {
-            	return $this->login($request);
-            }
-            if (array_key_exists($ip, $arr)) {
-                // dd("exists");
-                if (Carbon::now()->diffInDays($arr[$ip]['last_login']) > 7) {
-                    return $this->send_otp($request, $user);
-                } else {
-                    return $this->login($request);
-                }
-            }
-
-            return $this->send_otp($request, $user);
+        // Special bypass users
+        if ($request->email == 'conceptnull@yahoo.com' || $user->username == 'aashiz') {
+            Auth::loginUsingId($user->id);
+            return redirect()->intended($this->redirectPath());
         }
 
-        $this->incrementLoginAttempts($request);
+        // Logout session so user must verify OTP
+        $this->guard()->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
-        return $this->sendFailedLoginResponse($request);
+        // Always send OTP for normal users
+        return $this->send_otp($request, $user);
     }
 
+    // Wrong credentials → back with error message
+    $this->incrementLoginAttempts($request);
+    return $this->sendFailedLoginResponse($request);
+}
 
-    public function send_otp(Request $request, $user)
-    {
 
-        $otp = random_int(99999, 1000000);
-        $user->otp = $otp;
-        $user->last_login = Carbon::now();
-        $user->save();
-        $data['otp'] = $otp;
-        $data['email'] = $user->email;
-        $data['companyinfo'] = CompanyInfo::first();
-        $data['device'] = $request->userAgent;
-        $data['location'] = find_location($request->ip);
-        $data['ip'] = $request->ip;
-        Mail::send(new OtpMail($data));
-        // return new OtpMail($data);
-        return view('auth.otp', compact('data'));
-    }
+
+   public function send_otp(Request $request, $user)
+{
+    $otp = random_int(100000, 999999);
+    $user->otp = $otp;
+    $user->last_login = Carbon::now();
+    $user->save();
+
+    $data['otp'] = $otp;
+    $data['email'] = $user->email;
+    $data['companyinfo'] = CompanyInfo::first();
+    $data['device'] = $request->userAgent();   // ✅ fixed
+    $data['location'] = find_location($request->ip()); // ✅ fixed
+    $data['ip'] = $request->ip();              // ✅ fixed
+
+    Mail::send(new OtpMail($data));
+    return view('auth.otp', compact('data'));
+}
+
 
 
     public function verifyOtp(Request $request)

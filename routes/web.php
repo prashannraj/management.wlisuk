@@ -93,7 +93,7 @@ use App\Http\Controllers\Admin\AssessmentSectionController;
 
 Route::name('')->group(function () {
     Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
-    Route::post('login', [LoginController::class, 'prelogin']);
+    Route::post('/login', [LoginController::class, 'prelogin'])->name('login');
     Route::post('logout', [LoginController::class, 'logout'])->name('logout');
     Route::get('logout', [LoginController::class, 'logout'])->name('logout');
 });
