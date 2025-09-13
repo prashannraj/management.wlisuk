@@ -89,8 +89,7 @@
 
     <div class="form-group col-md-4">
         <label for="birthDate">Date of Birth (DD/MM/YYYY):</label>
-         <input name ="birthDate" type="date" class="form-control" id="birthDate" value="{{old('birthDate',optional($row)->birthDate)}}">
-
+         <input name="birthDate" type="date" class="form-control" id="birthDate" value="{{ old('birthDate', optional($row)->birthDate) }}">
         {!! isError($errors, 'birthDate') !!}
     </div>
 
@@ -111,10 +110,10 @@
 <div class="form-row">
     <div class="form-group col-md-6">
        <label for="">Mobile country code</label>
-        <select name='country_code' required class="form-control">
+        <select name="country_iso_mobile" required class="form-control">
             <option value="">Select an option</option>
             @foreach($data['countries'] as $country)
-            <option value="{{$country->id}}" {{old('country_code',optional($row)->country_iso_mobile) == $country->id?"selected":""}}>{{$country->title}} ({{$country->calling_code}})</option>
+            <option value="{{$country->id}}" {{ old('country_iso_mobile', optional($row)->country_iso_mobile) == $country->id ? "selected" : "" }}>{{$country->title}} ({{$country->calling_code}})</option>
             @endforeach
         </select>
 
@@ -124,7 +123,7 @@
 
     <div class="form-group col-md-6">
     <label>Mobile Number:</label>
-    <input type="text" name='contact_number' class="form-control" id="mobile" value="{{old('mobile',optional($row)->mobile)}}" placeholder="Contact number">
+    <input type="text" name="mobile" required class="form-control" value="{{ old('mobile', optional($row)->mobile) }}" placeholder="Contact number">
     {!! isError($errors, 'contact_number') !!}
     </div>
 

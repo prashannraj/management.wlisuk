@@ -6,15 +6,13 @@
         <div class="header-body">
             <div class="row align-items-center py-4">
                 <div class="col-lg-6 col-7">
-                    <h6 class="h2 text-white d-inline-block mb-0">Edit Web Enquiry</h6>
+                    <h6 class="h2 text-white d-inline-block mb-0">Web Enquiry</h6>
                 </div>
                 <div class="col-lg-6 col-5 text-right">
-                    <a href="{{ route('rawenquiry.show', $data['row']->id) }}" class="btn btn-sm btn-neutral">
-                        <i class="fas fa-chevron-left"></i> Back to view
-                    </a>
-                    <a href="{{ route('rawenquiry.index') }}" class="btn btn-sm btn-neutral">
-                        <i class="fas fa-chevron-left"></i> Back to list
-                    </a>
+                    <a href="{{route('rawenquiry.index')}}" class="btn btn-sm btn-neutral">
+                        <i class="fas fa-chevron-left"></i> Back to list</a> <br><br>
+                        <a href="{{route('rawenquiry.show',$data['row']->id)}}" class="btn btn-sm btn-neutral">
+                        <i class="fas fa-chevron-left"></i> Back to view</a>
                 </div>
             </div>
         </div>
@@ -27,22 +25,22 @@
     <div class="col">
         <div class="card">
             <div class="card-body">
-                <form action="{{ route('rawenquiry.update', $data['row']->id) }}" method="POST" enctype="multipart/form-data">
-                    @csrf
-                    @method("PUT")
+                <form class="" action="{{ route('rawenquiry.update',$data['row']->id)}}" method="POST" enctype="multipart/form-data">
+                        @csrf
+                        @method('PUT')
 
-                    @if(isset($data['row']->form_type) && $data['row']->form_type == 'immigration')
-                        @includeIf("enquiryform.forms.immigration", ['row' => $data['row'], 'countries' => $data['countries']])
+                        {{-- Load form based on type --}}
+                        @if(isset($data['row']->form_type) && $data['row']->form_type == 'immigration')
+                        @includeIf("enquiryform.forms.immigration",['row'=>$data['row']])
                     @else
-                        @includeIf("enquiryform.forms.general", ['row' => $data['row'], 'countries' => $data['countries']])
+                        @includeIf("enquiryform.forms.general",['row'=>$data['row']])
                     @endif
 
-                    <div class="form-group">
-                        <label for="resendEmail">Resend Email Verification</label>
-                        <input type="checkbox" name="resend_email" class="checkbox-control" id="resendEmail">
+                        <div class="form-group">
+                        <label for="">Resend Email Verification</label>
+                        <input type="checkbox" name="resend_email" class='checkbox-control' id="resendEmail">
                     </div>
-
-                    <button class="btn btn-primary">Submit</button>
+                    <button class='btn btn-primary'>Submit</button>
                 </form>
             </div>
         </div>

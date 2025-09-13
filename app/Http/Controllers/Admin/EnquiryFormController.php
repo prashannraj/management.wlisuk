@@ -30,6 +30,7 @@ class EnquiryFormController extends BaseController
     {
         //
         $data['forms'] = EnquiryForm::paginate(20);
+        $data['companyinfo'] = CompanyInfo::first();
         return view('enquiryform.index', compact('data'));
     }
 
@@ -172,6 +173,8 @@ class EnquiryFormController extends BaseController
     {
         $data = $request->all();
 
+        $data['form_type'] = 'general';
+
         // Always set has_uk_sponsor (fallback to "No")
         $data['has_uk_sponsor'] = $request->input('has_uk_sponsor', 'No');
 
@@ -181,6 +184,7 @@ class EnquiryFormController extends BaseController
         }
 
         RawInquiry::create($data);
+         $data['companyinfo'] = CompanyInfo::first();
 
         return view("enquiryform.success", compact('data'));
     }
@@ -189,7 +193,8 @@ class EnquiryFormController extends BaseController
    public function immigration(Request $request)
     {
         $data = $request->all();
-
+        // Assign form_type explicitly
+        $data['form_type'] = 'immigration';
         // Always set has_uk_sponsor (fallback to "No")
         $data['has_uk_sponsor'] = $request->input('has_uk_sponsor', 'No');
 
@@ -199,6 +204,7 @@ class EnquiryFormController extends BaseController
         }
 
         RawInquiry::create($data);
+         $data['companyinfo'] = CompanyInfo::first();
 
         return view("enquiryform.success", compact('data'));
     }
