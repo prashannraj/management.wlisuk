@@ -15,17 +15,19 @@
         </div>
         <div class="col-lg-6 col-5 text-right">
           <a href="{{ route('home') }}" class="btn btn-sm btn-neutral">
-            <i class="fas fa-chevron-left"></i> Back To Dashboard</a>
+            <i class="fas fa-chevron-left"></i> Back To Dashboard
+          </a>
         </div>
       </div>
     </div>
   </div>
 </div>
 @endsection
+
 @section('main-content')
 <div class="row">
   <div class="col">
-    <!-- Passport Details -->
+    <!-- Enquiry Forms Card -->
     <div class="card" id="documentCard">
       <div class="card-header">
         <h3 class="text-primary font-weight-600">Enquiry forms
@@ -44,32 +46,59 @@
               <th>Hits</th>
               <th>Actions</th>
             </thead>
-            <tbody class="">
+            <tbody>
               @foreach($data['forms'] as $bank)
               <tr>
-                <td>{{$bank->title}}</td>
-                <td>{{$bank->name}} </td>
-                <td>{{$bank->hits}}</td>
+                <td>{{ $bank->title }}</td>
+                <td>{{ $bank->name }}</td>
+                <td>{{ $bank->hits }}</td>
                 <td>
                   @php
-                  $editUrl = route('enquiryform.edit',$bank->id);
-                  $viewUrl = route('enquiryform.display', $bank->uuid);
-                  $btn =' <a href="'. $viewUrl .'" target="_blank" class="edit btn btn-primary btn-sm"><i class="fas fa-eye"></i></a>'.
-
-                  ' <a href="'. $editUrl .'" class="edit btn btn-success btn-sm"><i class="fas fa-edit"></i></a>';
+                    $editUrl = route('enquiryform.edit', $bank->id);
+                    $viewUrl = route('enquiryform.display', $bank->uuid);
+                    $btn =' <a href="'. $viewUrl .'" target="_blank" class="edit btn btn-primary btn-sm"><i class="fas fa-eye"></i></a>'.
+                          ' <a href="'. $editUrl .'" class="edit btn btn-success btn-sm"><i class="fas fa-edit"></i></a>';
                   @endphp
-                  {!!$btn!!}
-
+                  {!! $btn !!}
                 </td>
               </tr>
-
               @endforeach
             </tbody>
           </table>
 
-          <div>
-              {{$data['forms']->links()}}
+          <!-- Pagination -->
+          <div class="mt-3">
+            @if($data['forms']->hasPages())
+            <nav>
+              <ul class="pagination justify-content-center">
+                {{-- Previous Page Link --}}
+                @if($data['forms']->onFirstPage())
+                  <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+                @else
+                  <li class="page-item"><a class="page-link" href="{{ $data['forms']->previousPageUrl() }}"> &laquo; </a></li>
+                @endif
+
+                {{-- Pagination Elements --}}
+                @foreach ($data['forms']->getUrlRange(1, $data['forms']->lastPage()) as $page => $url)
+                  @if ($page == $data['forms']->currentPage())
+                    <li class="page-item active"><span class="page-link">{{ $page }}</span></li>
+                  @else
+                    <li class="page-item"><a class="page-link" href="{{ $url }}">{{ $page }}</a></li>
+                  @endif
+                @endforeach
+
+                {{-- Next Page Link --}}
+                @if($data['forms']->hasMorePages())
+                  <li class="page-item"><a class="page-link" href="{{ $data['forms']->nextPageUrl() }}"> &raquo; </a></li>
+                @else
+                  <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+                @endif
+              </ul>
+            </nav>
+            @endif
           </div>
+          <!-- End Pagination -->
+
         </div>
       </div>
       <div class="card-footer">
@@ -81,11 +110,12 @@
     </div>
   </div>
 </div>
+
+<!-- Delete Modal -->
 <div id="delete_bank" class='modal fade'>
   <div class="modal-dialog modal-confirm">
     <div class="modal-content">
       <div class="modal-header">
-
         <h4 class="modal-title w-100">Are you sure?</h4>
         <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
       </div>
@@ -94,9 +124,7 @@
         @method("DELETE")
         <div class="modal-body">
           <input id="data_id" name="id" type="hidden">
-
           <p>Do you really want to delete this bank? This process cannot be undone.</p>
-
         </div>
         <div class="modal-footer justify-content-center">
           <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
@@ -109,14 +137,11 @@
 @endsection
 
 @push("scripts")
-
 <script>
   $("#delete_bank").on('show.bs.modal', function(event) {
     var button = $(event.relatedTarget)
-
     var doc_id = button.data('id')
     var modal = $(this)
-
     modal.find('.modal-body #data_id').val(doc_id);
   });
 </script>
