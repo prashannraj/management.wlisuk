@@ -182,20 +182,30 @@ class RawInquiryController extends BaseController
     }
 
     public function process($id)
-    {
+    {   $data = [];
         $row = RawInquiry::findOrFail($id);
+        $data['country_code'] = IsoCountry::all();
+        $data['panel_name'] = 'Edit Enquiry';
+        $data['row']        = RawInquiry::findOrFail($id);
+        $data['notes'] = $data['row']->notes;
+        $enq = Enquiry::where("raw_enquiry_id",$id)->first();
+        if($enq){
+            return redirect()->route('enquiry.log',$enq->id);
+        }
+        if (!$data['row']) {
+            return 'No data found';
+        }
+        // ✅ FIX: Map additional_details into notes
+        $row->notes = $row->additional_details;
         $data = [
             'row' => $row,
             'countries' => $this->getCountryCode(),
             'enquiry_type' => $this->enquiry_type,
             'users' => $this->users,
+            'country_code' => $this->country_code,
             'title' => $this->title
         ];
-
-        $enq = Enquiry::where("raw_enquiry_id",$id)->first();
-        if($enq){
-            return redirect()->route('enquiry.log',$enq->id);
-        }
+        $data['countries'] = IsoCountry::orderBy("order", "desc")->get();
 
         return view('rawinquiry.toenquiry', compact('data'));
     }
@@ -241,6 +251,7 @@ class RawInquiryController extends BaseController
 
         $validated['mobile'] = preg_replace('/[^\x20-\x7E]/', '', $validated['mobile']);
         $rawInquiry = RawInquiry::findOrFail($id);
+        $validated['notes'] = $rawInquiry->additional_details;
         $validated['raw_enquiry_id'] = $id;
         $validated['modified_by'] = Auth::id();
         $validated['department_id'] = 1;
@@ -257,8 +268,10 @@ class RawInquiryController extends BaseController
 
         if ($request->action === 'preview') {
             $validated['processed'] = false;
+            $rawInquiry->notes = $rawInquiry->additional_details;
             $pdf = PDF::loadView($formType, ['data' => $validated]);
             $filename = "ENQ-Preview-Enquiry-Confirmation-{$rawInquiry->full_name}.pdf";
+            $path = storage_path('uploads/files/enquiryprocessed');
             return $pdf->stream($filename);
         }
 
