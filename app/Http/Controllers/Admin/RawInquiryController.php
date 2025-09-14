@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Str;
+use Carbon\Carbon;
 
 class RawInquiryController extends BaseController
 {   
@@ -40,8 +41,8 @@ class RawInquiryController extends BaseController
         $query = RawInquiry::query()->latest();
 
         if ($request->startdate && $request->enddate) {
-            $start = \Carbon\Carbon::parse($request->startdate)->startOfDay();
-            $end = \Carbon\Carbon::parse($request->enddate)->endOfDay();
+            $start = Carbon::parse($request->startdate)->startOfDay();
+            $end = Carbon::parse($request->enddate)->endOfDay();
             $query->whereBetween('updated_at', [$start, $end]);
         }
 
@@ -81,6 +82,9 @@ class RawInquiryController extends BaseController
         // Raw Inquiry fetch
         $row = RawInquiry::findOrFail($id);
 
+            // Format important dates before passing to view
+        
+
         // Countries list
         $countries = IsoCountry::orderBy("order", "desc")->get();
         // Set default form_type if null
@@ -106,7 +110,7 @@ class RawInquiryController extends BaseController
         // Dates
         $inq->birthDate = $request->input('birthDate');
         $inq->refusalLetterDate = $request->input('refusalLetterDate');
-        $inq->refusalReceived = $request->input('refusalreceivedDate');
+        $inq->refusalreceivedDate = $request->input('refusalreceivedDate');
 
         // Immigration file handling
         if ($inq->form_type == 'immigration') {

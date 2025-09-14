@@ -18,6 +18,8 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Validation\Rules\Email;
+use Termwind\Components\Raw;
 
 class EnquiryFormController extends BaseController
 {
@@ -156,7 +158,7 @@ class EnquiryFormController extends BaseController
 
         $form = EnquiryForm::whereUuid($uuid)->firstOrFail();
         $data = $this->validate($request, [
-            // 'g-recaptcha-response' => ['required', new GoogleRecaptcha],
+            'g-recaptcha-response' => ['required', new GoogleRecaptcha],
             'allow' => 'required',
             'email' => 'required|email'
         ]);
@@ -172,19 +174,31 @@ class EnquiryFormController extends BaseController
     public function general(Request $request)
     {
         $data = $request->all();
+        $p = new RawInquiry;
+        $data['country_iso_mobile'] = $data['country_code'];
+        $data['mobile'] = $data['contact_number'];
 
+        do {
+            $data['unique_code'] = Str::random(8);
+        } while (RawInquiry::whereUniqueCode($data['unique_code'])->count() != 0);
+
+        $inq = RawInquiry::create($data);
+        $inq->update(['extra_details' => ['ip' => $request->ip()]]);
+        $r['row'] = $inq;
+        // Assign form_type explicitly
         $data['form_type'] = 'general';
 
         // Always set has_uk_sponsor (fallback to "No")
-        $data['has_uk_sponsor'] = $request->input('has_uk_sponsor', 'No');
+        $data['has_uk_sponsor'] = $request->input('has_uk_sponsor', 'No'); 
 
-        // Generate unique code if not already set
-        if (empty($data['unique_code'])) {
-            $data['unique_code'] = strtoupper(uniqid("RQ"));
-        }
+        // Send Mail to user
+        Mail::send(new EnquiryVerifyMail($r));
+        $users = EmailSender::whereIn('id', ['4', '5'])->get();
+        Notification::send($users, new NewEnquiryAlert($inq));
+        $data = $r;
 
         RawInquiry::create($data);
-         $data['companyinfo'] = CompanyInfo::first();
+        $data['companyinfo'] = CompanyInfo::first();
 
         return view("enquiryform.success", compact('data'));
     }
@@ -195,16 +209,55 @@ class EnquiryFormController extends BaseController
         $data = $request->all();
         // Assign form_type explicitly
         $data['form_type'] = 'immigration';
+        $p = new RawInquiry;
+        $data['country_iso_mobile'] = $data['country_code'];
+        $data['mobile'] = $data['contact_number'];
+        $data['date_of_decision'] = isset($data['date_of_decision']) ? $this->reformatDate($data['date_of_decision']) : null;
+            if($request->hasFile('refusal_document')){
+                $file=$request->file('refusal_document');
+                $filename= time().'_'.$file->getClientOriginalName();
+        $data['refusal_document'] =  Storage::disk('uploads')->putFileAs('refusal_documents', $file, $filename);
+            }else{
+                $data['refusal_document'] = null;
+            }
+
+            if($request->hasFile('appellant_passport')){
+                $file=$request->file('appellant_passport');
+                $filename= time().'_'.$file->getClientOriginalName();
+        $data['appellant_passport'] =  Storage::disk('uploads')->putFileAs('appellant_passports', $file, $filename);
+            }else{
+                $data['appellant_passport'] = null;
+            }
+
+            if($request->hasFile('proff_address')){
+                $file=$request->file('proff_address');
+                $filename= time().'_'.$file->getClientOriginalName();
+        $data['proff_address'] =  Storage::disk('uploads')->putFileAs('proff_address', $file, $filename);
+            }else{
+                $data['proff_address'] = null;
+            }
         // Always set has_uk_sponsor (fallback to "No")
         $data['has_uk_sponsor'] = $request->input('has_uk_sponsor', 'No');
 
-        // Generate unique code if not already set
-        if (empty($data['unique_code'])) {
-            $data['unique_code'] = strtoupper(uniqid("RQ"));
-        }
+        $data['birthDate'] = isset($data['birthDate']) ? $this->reformatDate($data['birthDate']) : null;
+        $data['refusalLetterDate'] = isset($data['refusalLetterDate']) ? $this->reformatDate($data['refusalLetterDate']) : null;
+        $data['refusalReceived'] = isset($data['refusalReceived']) ? $this->reformatDate($data['refusalReceived']) : null;
+        
+        do {
+            $data['unique_code'] = Str::random(8);
+        } while (RawInquiry::whereUniqueCode($data['unique_code'])->count() != 0);
+
+        $inq  = RawInquiry::create($data);
+        $inq->update(['extra_details' => ['ip' => $request->ip()]]);
+
+        $r['row'] = $inq;
+        // Send Mail to user
+        Mail::send(new EnquiryVerifyMail($r));
+        $users = EmailSender::whereIn('id',['4','5'])->get();
+        Notification::send($users,new NewEnquiryAlert($inq));
 
         RawInquiry::create($data);
-         $data['companyinfo'] = CompanyInfo::first();
+        $data['companyinfo'] = CompanyInfo::first();
 
         return view("enquiryform.success", compact('data'));
     }

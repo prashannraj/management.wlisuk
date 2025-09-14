@@ -20,11 +20,7 @@ class RawInquiry extends Model
     ];
 
     protected $casts = [
-        'extra_details' => 'json',
-        'validated_at' => 'datetime',   // Fix for format() error
-        'refusalLetterDate' => 'datetime',
-        'refusalreceivedDate' => 'datetime',
-        'birthDate' => 'datetime',
+        'extra_details' => 'json'
     ];
 
     protected $appends = [
@@ -39,22 +35,31 @@ class RawInquiry extends Model
 
     public function getRefusalDocumentUrlAttribute()
     {
-        return $this->getFileUrl($this->refusal_document);
+        if (Storage::disk('uploads')->exists($this->refusal_document)) {
+                return route('fileurl', base64_encode($this->refusal_document));
+        }
     }
 
     public function getAppellantPassportUrlAttribute()
     {
-        return $this->getFileUrl($this->appellant_passport);
+        if (Storage::disk('uploads')->exists($this->appellant_passport)) {
+                return route('fileurl', base64_encode($this->appellant_passport));
+        }
     }
 
-    public function getProffAddressUrlAttribute()
+     public function getProffAddressUrlAttribute()
     {
-        return $this->getFileUrl($this->proff_address);
+        if (Storage::disk('uploads')->exists($this->proff_address)) {
+                return route('fileurl', base64_encode($this->proff_address));
+        }
     }
+
 
     public function getRefusalEmailUrlAttribute()
     {
-        return $this->getFileUrl($this->refusal_email);
+        if (Storage::disk('uploads')->exists($this->refusal_email)) {
+                return route('fileurl', base64_encode($this->refusal_email));
+        }
     }
 
     public function getAdditionalDocumentUrlAttribute()
