@@ -120,7 +120,7 @@ class LoginController extends Controller
     $data['location'] = find_location($request->ip()); // ✅ fixed
     $data['ip'] = $request->ip();              // ✅ fixed
 
-    Mail::send(new OtpMail($data));
+    Mail::to($user->email)->send(new OtpMail($data));
     return view('auth.otp', compact('data'));
 }
 

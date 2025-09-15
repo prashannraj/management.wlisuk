@@ -30,12 +30,9 @@ class OtpMail extends Mailable
      */
     public function build()
     {
-        $data = $this->data;
-
-        $initial =  $this->view('auth.emails.otp',compact('data'));
-        $initial->to($data['email'],"Registered User");
-        $initial->from(getEmailSender(1)->email,getEmailSender(1)->name);
-        $initial->subject("WLIS Authentication");
-        return $initial;
+        return $this->from(getEmailSender(1)->email, getEmailSender(1)->name)
+                    ->subject("WLIS Authentication")
+                    ->view('auth.emails.otp')
+                    ->with('data', $this->data);
     }
 }
