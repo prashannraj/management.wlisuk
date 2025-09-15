@@ -37,7 +37,7 @@ class RawInquiryController extends BaseController
         $this->users = User::select('id', 'username')->orderBy('username', 'asc')->get();
     }
 
-    public function index(Request $request)
+   public function index(Request $request)
     {
         $request->validate([
             'startdate' => 'nullable|date',
@@ -45,7 +45,8 @@ class RawInquiryController extends BaseController
             'status' => 'nullable|in:processed,not_processed'
         ]);
 
-        $query = RawInquiry::query()->latest();
+        $query = RawInquiry::query()->latest()
+            ->whereDoesntHave('enquiry'); // ✅ exclude processed by default
 
         if ($request->startdate && $request->enddate) {
             $start = Carbon::parse($request->startdate)->startOfDay();
@@ -54,15 +55,16 @@ class RawInquiryController extends BaseController
         }
 
         if ($request->status === 'processed') {
-            $query->whereHas('enquiry');
+            $query->whereHas('enquiry'); // override default if explicitly filtered
         } elseif ($request->status === 'not_processed') {
-            $query->whereDoesntHave('enquiry');
+            $query->whereDoesntHave('enquiry'); // already default
         }
 
         $inquiries = $query->paginate(10);
 
         return view('rawinquiry.index', compact('inquiries'));
     }
+
 
     public function show($id)
     {
