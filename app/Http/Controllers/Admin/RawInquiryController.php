@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Storage;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
+use Newsletter;
 
 class RawInquiryController extends BaseController
 {   
@@ -38,6 +39,12 @@ class RawInquiryController extends BaseController
 
     public function index(Request $request)
     {
+        $request->validate([
+            'startdate' => 'nullable|date',
+            'enddate' => 'nullable|date|after_or_equal:startdate',
+            'status' => 'nullable|in:processed,not_processed'
+        ]);
+
         $query = RawInquiry::query()->latest();
 
         if ($request->startdate && $request->enddate) {
@@ -81,15 +88,10 @@ class RawInquiryController extends BaseController
     {
         // Raw Inquiry fetch
         $row = RawInquiry::findOrFail($id);
-
-            // Format important dates before passing to view
-        
-
         // Countries list
         $countries = IsoCountry::orderBy("order", "desc")->get();
         // Set default form_type if null
         $row->form_type = $row->form_type ?? 'general';
-
         // Prepare data array as Blade expects
         $data = [
             'row'       => $row,
@@ -223,6 +225,29 @@ class RawInquiryController extends BaseController
         if($request->redirect_to){
             return redirect($request->redirect_to);
         }
+    }
+
+
+
+    public function verify($uuid)
+    {
+        $inq = RawInquiry::whereUniqueCode($uuid)->firstOrFail();
+        $inq->validated_at = now();
+        $inq->save();
+
+        $data['companyinfo'] = CompanyInfo::first();
+
+        Newsletter::subscribeOrUpdate(
+            $inq->email,
+            [
+                'FNAME'  => $inq->f_name . ' ' . $inq->m_name,
+                'LNAME'  => $inq->l_name,
+                'ADDRESS'=> $inq->full_address,
+                'PHONE'  => $inq->contact_number,
+            ]
+        );
+
+        return view('enquiryform.verified', compact('data'));
     }
 
     public function storeToEnquiry(Request $request, int $id)

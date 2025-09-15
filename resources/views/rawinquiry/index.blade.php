@@ -81,11 +81,11 @@
                                 <i class="fa fa-cog"></i>
                             </button>
 
-                            <!-- Delete -->
+                            {{-- <!-- Delete -->
                             <form action="{{ route('rawenquiry.destroy',$row->id) }}" method="POST" style="display:inline;">
                                 @csrf @method('delete')
                                 <button class="btn btn-sm btn-danger" type="submit"><i class="fa fa-trash"></i></button>
-                            </form>
+                            </form> --}}
                         </td>
                     </tr>
 

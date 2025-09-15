@@ -59,10 +59,7 @@ class Enquiry extends Model
 		return $this->belongsTo(EnquiryType::class,'enquiry_type_id');
 	}
 
-	public function activities(){
-		return $this->hasMany(EnquiryActivity::class,'enquiry_list_id','id') ?? collect();
-	}
-
+	
 	public function studentContactDetail(){
 		return $this->hasOne(StudentContactDetail::class,'enquiry_list_id','id');
 	}
@@ -163,5 +160,10 @@ class Enquiry extends Model
     {
         return $this->belongsTo(RawInquiry::class);
     }
+
+	public function activities()
+{
+    return $this->hasMany(\App\Models\EnquiryActivity::class, 'enquiry_list_id', 'id');
+}
 
 }

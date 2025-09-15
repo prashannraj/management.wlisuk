@@ -8,6 +8,13 @@ use App\LetterOfAuthority;
 use App\LetterToFirms;
 use App\RequestToMedical;
 use App\RequestToFinance;
+use App\CclApplication;
+use App\RequestToTrbunal;
+use App\SubjectAccess;
+use App\FileOpeningForm;
+use App\ClientOfAuthority;
+use App\LteCcl;
+use App\NewCcl;
 use Yajra\DataTables\Facades\DataTables;
 use App\Models\Enquiry;
 use App\Models\User;
@@ -19,6 +26,13 @@ use App\Http\Requests\EnquiryStoreRequest;
 use App\Http\Requests\EnquiryUpdateRequest;
 use App\Mail\ClientcareMail;
 use App\Mail\EnquirycareMail;
+use App\Mail\LoaMail;
+use App\Mail\LtfMail;
+use App\Mail\RtmMail;
+use App\Mail\RttMail;
+Use App\Mail\SaMail;
+use App\Mail\FoMail;
+use App\Mail\CoaMail;
 use App\Models\Advisor;
 use App\Models\Bank;
 use App\Models\ClientAddressDetail;
@@ -38,7 +52,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Session;
 use Barryvdh\DomPDF\Facade\Pdf as PDF;
 use Exception;
-
+use Termwind\Components\Raw;
 
 class EnquiryController extends BaseController
 {
@@ -91,6 +105,17 @@ class EnquiryController extends BaseController
             'enquiry_type' => $this->enquiry_type,
             'users' => $this->users
         ];
+        return view('admin.inquiry.create', compact('data'));
+    }
+
+     public function editBasicInfo()
+    {
+        $data = [];
+        $data['panel_name'] = 'Add New Enquiry';
+        $data['title'] = $this->title;
+        $data['country_code'] = $this->country_code;
+        $data['enquiry_type'] = $this->enquiry_type;
+        $data['users'] = $this->users;
         return view('admin.inquiry.create', compact('data'));
     }
 
@@ -196,6 +221,7 @@ class EnquiryController extends BaseController
         $enquiry->delete();
         return redirect()->route('enquiry.list')->with("success", "Successfully deleted enquiry");
     }
+
     public function status(Request $request)
     {
         $id = $request->id;
@@ -215,10 +241,9 @@ class EnquiryController extends BaseController
 
     public function statusUpdate(Request $request)
     {
-        // dd($request->all());
         $userId = Auth::user()->id;
         $enquiryActivity = EnquiryActivity::find($request->activityId);
-        // dd($enquiryActivity);
+         
         if (!$enquiryActivity) {
         }
         $status = false;
@@ -282,12 +307,10 @@ class EnquiryController extends BaseController
     public function indexLog($id)
     {
         $data = array();
-        $data['enquiry'] = Enquiry::with('clientcare')->findOrFail($id);
-       $data['row'] = RawInquiry::latest()->first();
 
-
-
-
+        $enquiry = Enquiry::with('clientcare')->findOrFail($id);
+        $row = RawInquiry::latest()->first();
+        $data['enquiry'] = $enquiry;
 
         $data['enquirycare'] = EnquiryCare::where('enquiry_id', $id)->first();
         if ($data['enquirycare'] == null) {
@@ -297,11 +320,11 @@ class EnquiryController extends BaseController
 
         $data['advisors'] = Advisor::whereStatus("active")->get();
         $data['country_code'] = $this->country_code;
-
         $data['currencies'] = IsoCurrency::all();
         $data['banks'] = Bank::whereStatus("active")->get();
         $data['activities'] = $data['enquiry']->activities()->orderby('status', 'desc')->get();
-       // $data['enq_number'] = optional($data['row'])->enq_number; // retrieve enq_number from RawInquiry model
+
+        
 
         return view('admin.inquiry.log', compact('data'));
     }

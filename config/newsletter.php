@@ -1,14 +1,17 @@
 <?php
 
 return [
+    'driver' => 'mailchimp',
 
-    'driver' => env('NEWSLETTER_DRIVER', 'mailchimp'),
-
-    'mailchimp' => [
-        'apiKey' => env('MAILCHIMP_APIKEY'),
-        'server' => env('MAILCHIMP_SERVER_PREFIX'),
+    'drivers' => [
+        'mailchimp' => [
+            'apiKey' => env('MAILCHIMP_APIKEY'),
+            'defaultListName' => 'subscribers',
+            'lists' => [
+                'subscribers' => [
+                    'id' => env('MAILCHIMP_LIST_ID'),
+                ],
+            ],
+        ],
     ],
-
-    'mailchimp_list_id' => env('MAILCHIMP_LIST_ID'),
-
 ];

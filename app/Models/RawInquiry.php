@@ -35,42 +35,52 @@ class RawInquiry extends Model
 
     public function getRefusalDocumentUrlAttribute()
     {
-        if (Storage::disk('uploads')->exists($this->refusal_document)) {
-                return route('fileurl', base64_encode($this->refusal_document));
+        if (!empty($this->refusal_document) && Storage::disk('uploads')->exists($this->refusal_document)) {
+            return route('fileurl', base64_encode($this->refusal_document));
         }
+
+        return null; // always return something to avoid undefined return
     }
 
     public function getAppellantPassportUrlAttribute()
     {
-        if (Storage::disk('uploads')->exists($this->appellant_passport)) {
-                return route('fileurl', base64_encode($this->appellant_passport));
+        if (!empty($this->appellant_passport) && Storage::disk('uploads')->exists($this->appellant_passport)) {
+            return route('fileurl', base64_encode($this->appellant_passport));
         }
+
+        return null;
     }
 
-     public function getProffAddressUrlAttribute()
+    public function getProffAddressUrlAttribute()
     {
-        if (Storage::disk('uploads')->exists($this->proff_address)) {
-                return route('fileurl', base64_encode($this->proff_address));
+        if (!empty($this->proff_address) && Storage::disk('uploads')->exists($this->proff_address)) {
+            return route('fileurl', base64_encode($this->proff_address));
         }
+
+        return null;
     }
 
 
     public function getRefusalEmailUrlAttribute()
     {
-        if (Storage::disk('uploads')->exists($this->refusal_email)) {
-                return route('fileurl', base64_encode($this->refusal_email));
+        if (!empty($this->refusal_email) && Storage::disk('uploads')->exists($this->refusal_email)) {
+            return route('fileurl', base64_encode($this->refusal_email));
         }
+
+        return null;
     }
 
     public function getAdditionalDocumentUrlAttribute()
     {
         $filePaths = [];
-        if(!empty($this->additional_document)){
+        if (!empty($this->additional_document)) {
             $data = json_decode($this->additional_document);
-            if(is_array($data)){
-                foreach($data as $eachFile){
+            if (is_array($data)) {
+                foreach ($data as $eachFile) {
                     $url = $this->getFileUrl($eachFile);
-                    if($url) $filePaths[] = $url;
+                    if ($url) {
+                        $filePaths[] = $url;
+                    }
                 }
             }
         }
@@ -79,12 +89,12 @@ class RawInquiry extends Model
 
     private function getFileUrl($file)
     {
-        if($file && Storage::disk('uploads')->exists($file)){
+        if (!empty($file) && Storage::disk('uploads')->exists($file)) {
             return route('fileurl', base64_encode($file));
         }
+
         return null;
     }
-
     public function getFullNameAttribute()
     {
         return trim("{$this->f_name} {$this->m_name} {$this->l_name}");
