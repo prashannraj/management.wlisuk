@@ -90,16 +90,9 @@
                                 <td>{{ $enquiry->surname }}</td>
                                 <td>{!! $enquiry->enquiry_type !!}</td>
                                 <td>
-                                    <a href="{{ route('enquiry.show', $enquiry->id) }}" class="btn btn-sm btn-info">View</a>
-                                    <a href="{{ route('enquiry.edit', $enquiry->id) }}" class="btn btn-sm btn-primary">Edit</a>
-                                    <form action="{{ route('enquiry.delete', $enquiry->id) }}" method="POST" class="d-inline">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" onclick="return confirm('Are you sure?')" class="btn btn-sm btn-danger">
-                                            Delete
-                                        </button>
-                                    </form>
-
+                                    <a href="{{ route('enquiry.show', $enquiry->id) }}" class="btn btn-sm btn-primary" title="View Enquiry"><i class="fas fa-eye"></i></a>
+                                    <a href="{{ route('enquiry.log',$enquiry->id)}}" class="btn btn-info btn-sm"><i class="fas fa-cog"></i></a>
+                                    <a href="{{ route('enquiry.dashboard',$enquiry->id)}}" class="btn btn-sm btn-success"><i class="fas fa-tachometer-alt"></i></a>
                                 </td>
                             </tr>
                             @empty
