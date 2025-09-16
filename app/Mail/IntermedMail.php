@@ -14,7 +14,7 @@ use PDF;
 use File;
 use Illuminate\Support\Facades\Storage;
 
-class RtfMail extends Mailable
+class IntermedMail extends Mailable
 {
     use Queueable, SerializesModels;
 
@@ -40,12 +40,12 @@ class RtfMail extends Mailable
     {
         $data = $this->data;
 
-        $subject = "Att: ENQ{$data['enquiry']->id} - {$data['requesttofinance']->client_name} - Financial Data Request Form";
+        $subject = "Att: ENQ{$data['enquiry']->id} - {$data['intermedccl']->full_name_with_title} - Client Care Letter with Intermediary";
         $filename = $data['filename'] . ".pdf";
 
         // Attach generated PDF
         $pdf_path = $this->createDocument($filename);
-        $this->attach(public_path('uploads/files' . $pdf_path), ['as' => "01_" . $filename]);
+        $this->attach(public_path('uploads/files' . $pdf_path), ['as' => "" . $filename]);
 
         // Attach uploaded files
         if (!empty($data['attachments'])) {
@@ -67,11 +67,11 @@ class RtfMail extends Mailable
         }
 
         // Email body and log
-        $email_content = view('admin.inquiry.email.requesttofinance', compact('data'))->render();
+        $email_content = view('admin.inquiry.email.intermed', compact('data'))->render();
 
         CommunicationLog::create([
-            'to' => $data['requesttofinance']->client_name,
-            'description' => "Request To Finance",
+            'to' => $data['intermedccl']->full_name_with_title,
+            'description' => "Client Care Letter with Intermediary",
             'enquiry_id' => $data['enquiry']->id,
             'email_content' => $email_content,
             'basic_info_id' => null,
@@ -81,7 +81,7 @@ class RtfMail extends Mailable
             ->to(getEmailSender(3)->email)
             ->replyTo($data['advisor']->email, $data['advisor']->name)
             ->subject($subject)
-            ->view('admin.inquiry.email.requesttofinance', compact('data'));
+            ->view('admin.inquiry.email.intermed', compact('data'));
     }
 
 
@@ -92,7 +92,7 @@ class RtfMail extends Mailable
         $file_path = "/uploads/files/";
         $file_name = time() . "_{$filename}";
 
-        $path = public_path('uploads/files/requesttofinance');
+        $path = public_path('uploads/files/intermed');
         if (!File::isDirectory($path)) {
 
             File::makeDirectory($path, 0777, true, true);
@@ -100,9 +100,9 @@ class RtfMail extends Mailable
 
 
 
-        $db = "/requesttofinance/" . $file_name;
+        $db = "/intermed/" . $file_name;
         $data = $this->data;
-        $pdf = PDF::loadView("admin.inquiry.pdf.request_to_finance", compact('data'));
+        $pdf = PDF::loadView("admin.inquiry.pdf.intermed_ccl", compact('data'));
 
         $pdf->save(public_path($file_path . $db));
 

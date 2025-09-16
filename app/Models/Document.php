@@ -3,9 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
-// Client Document
-use URL;
 
 class Document extends Model
 {
@@ -20,47 +17,56 @@ class Document extends Model
         'name',
         'note',
         'documents',
+        'ftype',
     ];
 
+    // ----------------------
+    // ICON TYPE BASED ON ftype
+    // ----------------------
     public function getFileTypeAttribute()
-	{
-        $fileType = 'fa fa-eye text-default';
-        if (!empty($this->documents)) {
-            if($this->ftype == 'image'){
-                $fileType = 'fa fa-image text-info';
-                return $fileType;
-            }elseif($this->ftype == 'pdf'){
-                $fileType = 'fa fa-file-pdf text-danger';
-            }elseif($this->ftype == 'document'){
-                $fileType = 'fa fa-file-word text-success';
-            }else{
-                return $fileType;
-            }
-            return $fileType;
-		} else {
-			return $fileType;
-		}
-    }
-    
-    public function getFileUrlAttribute()
-	{
-        if ($this->documents) {
-			return route('documenturl', base64_encode($this->documents));
-		} else {
-			return null;
-		}
-	}
+    {
+        if (empty($this->documents)) {
+            return 'fa fa-eye text-default';
+        }
 
+        return match ($this->ftype) {
+            'image'    => 'fa fa-image text-info',
+            'pdf'      => 'fa fa-file-pdf text-danger',
+            'document' => 'fa fa-file-word text-success',
+            default    => 'fa fa-eye text-default',
+        };
+    }
+
+    // ----------------------
+    // FILE URL (download/preview)
+    // ----------------------
+    public function getFileUrlAttribute()
+    {
+        // यदि documents = "/uploads/files/newccl/12345.pdf"
+        return $this->documents
+            ? asset(ltrim($this->documents, '/'))
+            : null;
+    }
+
+    // ----------------------
+    // RELATION
+    // ----------------------
     public function basicinfo()
     {
         return $this->belongsTo(BasicInfo::class, 'basic_info_id', 'id');
     }
 
-    public function delete(){
-        Storage::disk('uploads')->delete($this->documents);
-        
+    // ----------------------
+    // DELETE WITH FILE REMOVE
+    // ----------------------
+    public function delete()
+    {
+        $absolutePath = public_path($this->documents);
+
+        if (file_exists($absolutePath)) {
+            @unlink($absolutePath);
+        }
+
         return parent::delete();
-
     }
-
 }

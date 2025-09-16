@@ -153,7 +153,7 @@
                         <div class="form-group">
                             <label for="">Vat</label>
                             <input type="text"
-                                value="{{ old('vat', optional($data['newccl'])->vat) }}"
+                                value="{{ old('vat', optional($data['newccl'])->vat ?? 20) }}"
                                 class="form-control" name='vat'>
                         </div>
                     </div>
@@ -311,17 +311,21 @@
                                                     <tbody>
                                                         <tr>
                                                             <td>
-                                                                <img src="{{ public_path($data['advisor']->signature_url) }}" width="120" alt="">
+                                                                @if(!empty($data['advisor']) && $data['advisor']->signature_url)
+                                                                    <img src="{{ public_path($data['advisor']->signature_url) }}" width="120" alt="">
+                                                                @else
+                                                                    <p><i>No signature available</i></p>
+                                                                @endif
                                                             </td>
 
                                                         </tr>
                                                         <tr>
 
-                                                            <td>{{$data['advisor']->name}}</td>
+                                                            <td>{{ optional($data['advisor'])->name ?? 'Default Advisor' }}</td>
 
                                                         </tr>
                                                         <tr>
-                                                            <td>{{$data['company_info']->name}}</td>
+                                                            <td>{{optional($data['company_info'])->name ?? 'Default Company'}}</td>
                                                         </tr>
                                                     </tbody>
                                                 </table>

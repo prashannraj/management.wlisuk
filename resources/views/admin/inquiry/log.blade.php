@@ -226,7 +226,7 @@
 
                         <td>
                             @if($doc->documents)
-                            <a href="{{ $doc->file_url }}" class="btn btn-sm">
+                            <a href="{{ $doc->file_url }}" download class="btn btn-sm btn-primary">
                                 <i class="{{ $doc->file_type }} fa-2x"></i>
                             </a>
                             @endif
