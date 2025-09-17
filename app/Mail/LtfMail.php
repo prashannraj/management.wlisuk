@@ -10,9 +10,11 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Auth;
-use PDF;
-use File;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
+
 
 class LtfMail extends Mailable
 {
@@ -36,53 +38,94 @@ class LtfMail extends Mailable
      *
      * @return $this
      */
-    public function build()
+   public function build()
     {
         $data = $this->data;
 
-        $subject = "Att:{$data['lettertofirms']->firmsname} - Your client:{$data['lettertofirms']->your} - File/Data request-  Our Ref: ENQ{$data['enquiry']->id} ";
-        $filename = $data['filename'] . ".pdf";
+        // Null-safe access
+        $letter = $data['lettertofirms'] ?? null;
+        $enquiry = $data['enquiry'] ?? null;
+        $advisor = $data['advisor'] ?? null;
 
-        // Attach generated PDF
-        $pdf_path = $this->createDocument($filename);
-        $this->attach(public_path('uploads/files' . $pdf_path), ['as' => "01_" . $filename]);
+        $firmsname = $letter->firmsname ?? 'No Firm';
+        $your = $letter->your ?? 'No Name';
+        $enquiryId = $enquiry->id ?? '0';
+        $filenameBase = $data['filename'] ?? "ENQ{$enquiryId}-NoFile";
+        $filename = $filenameBase . ".pdf";
 
-        // Attach uploaded files
-        if (!empty($data['attachments'])) {
-            foreach ($data['attachments'] as $index => $path) {
-                $this->attach(storage_path('app/public/' . $path), [
-                    'as' => '0' . ($index + 2) . "_" . basename($path)
-                ]);
+        $subject = "Att: {$firmsname} - Your client: {$your} - File/Data request - Our Ref: ENQ{$enquiryId}";
+
+        // Generate PDF safely
+        $pdf_path = null;
+        if ($enquiry) {
+            try {
+                $pdf_path = $this->createDocument($filenameBase);
+            } catch (\Exception $e) {
+                Log::error("PDF generation failed: " . $e->getMessage());
             }
         }
 
-        // Attach company documents
-        if (isset($data['documents']) && is_array($data['documents'])) {
-            foreach ($data['documents'] as $documentId) {
-                $doc = CompanyDocument::find($documentId);
-                if ($doc && file_exists($doc->document_path)) {
-                    $this->attach($doc->document_path, ['as' => basename($doc->document_path)]);
+        $mail = $this->from(
+            optional(getEmailSender(3))->email ?? config('mail.from.address'),
+            optional(getEmailSender(3))->name ?? config('mail.from.name')
+        )->subject($subject);
+
+        // Attach PDF if exists
+        if ($pdf_path && file_exists(public_path('uploads/files' . $pdf_path))) {
+            $mail->attach(public_path('uploads/files' . $pdf_path), [
+                'as' => $filename,
+            ]);
+        }
+
+        // Attach uploaded files safely
+        if (!empty($data['attachments']) && is_array($data['attachments'])) {
+            foreach ($data['attachments'] as $index => $path) {
+                $fullPath = storage_path('app/public/' . $path);
+                if (file_exists($fullPath)) {
+                    $mail->attach($fullPath, [
+                        'as' => '0' . ($index + 2) . "_" . basename($path)
+                    ]);
                 }
             }
         }
 
-        // Email body and log
+        // Attach company documents safely
+        if (!empty($data['documents']) && is_array($data['documents'])) {
+            foreach ($data['documents'] as $documentId) {
+                $doc = CompanyDocument::find($documentId);
+                if ($doc && file_exists($doc->document_path)) {
+                    $mail->attach($doc->document_path, [
+                        'as' => basename($doc->document_path)
+                    ]);
+                }
+            }
+        }
+
+        // Render email content safely
         $email_content = view('admin.inquiry.email.lettertofirm', compact('data'))->render();
 
-        CommunicationLog::create([
-            'to' => $data['enquiry']->full_name,
-            'description' => "Letter to firms (Data request)",
-            'enquiry_id' => $data['enquiry']->id,
-            'email_content' => $email_content,
-            'basic_info_id' => null,
-        ]);
+        if ($enquiry) {
+            CommunicationLog::create([
+                'to' => $enquiry->full_name ?? 'Unknown',
+                'description' => "Letter to firms (Data request)",
+                'enquiry_id' => $enquiry->id ?? null,
+                'email_content' => $email_content,
+                'basic_info_id' => null,
+            ]);
+        }
 
-        return $this->from(getEmailSender(3)->email, getEmailSender(3)->name)
-            ->to($data['enquiry']->email)
-            ->replyTo($data['advisor']->email, $data['advisor']->name)
-            ->subject($subject)
-            ->view('admin.inquiry.email.lettertofirm', compact('data'));
+        // To and ReplyTo safely
+        if ($enquiry && $advisor) {
+            $mail->to($enquiry->email)
+                ->replyTo($advisor->email ?? null, $advisor->name ?? null);
+        } elseif ($enquiry) {
+            $mail->to($enquiry->email);
+        }
+
+        // Finally, set view
+        return $mail->view('admin.inquiry.email.lettertofirm', compact('data'));
     }
+
 
 
     public function createDocument($filename)

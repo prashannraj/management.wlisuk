@@ -9,9 +9,10 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
-use PDF;
-use Auth;
-use File;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Auth;
+
 
 class ClientcareMail extends Mailable
 {
@@ -41,90 +42,94 @@ class ClientcareMail extends Mailable
     {
         $data = $this->data;
 
-        $subject = "Att: {$data['enquiry']->full_name} - Client care letter(ENQ{$data['enquiry']->id})";
-
-        $filename = $data['filename'].".pdf";
+        $subject = "Att: {$data['enquiry']->full_name} - Client care letter (ENQ{$data['enquiry']->id})";
+        $filename = $data['filename'] . ".pdf";
         $count = 1;
 
+        // Generate the PDF
         $returnedPath = $this->createDocument($filename);
 
-        $this->attachFromStorageDisk("uploads",$returnedPath,'0'.$count++."_".$filename);
+        // Attach generated PDF directly from public_path
+        $this->attach(public_path($returnedPath), [
+            'as' => "0" . $count++ . "_" . $filename
+        ]);
 
+        // Track attachments string
         $attachments_string = $filename . "<br>";
-        if (array_key_exists('attachments',$data) && is_array($data['attachments'])) {
-            foreach ($data['attachments'] as $index => $attach) {
-              if($attach)
-              {
-                  $this->attachData($attach->get(),"0".$count++."_". $attach->getClientOriginalName());
-                $attachments_string .= $attach->getClientOriginalName() . "<br>";}
+
+        // Uploaded attachments
+        if (!empty($data['attachments']) && is_array($data['attachments'])) {
+            foreach ($data['attachments'] as $attach) {
+                if ($attach) {
+                    $this->attachData($attach->get(), "0" . $count++ . "_" . $attach->getClientOriginalName());
+                    $attachments_string .= $attach->getClientOriginalName() . "<br>";
+                }
             }
         }
 
-        if (array_key_exists('documents',$data) && is_array($data['documents'])) {
-            foreach ($data['documents'] as $attach) {
-                $attach = CompanyDocument::find($attach);
-              if($attach)
-              {  $this->attach($attach->document_path);
-                $attachments_string .= $attach->name . "<br>";}
+        // Selected company documents
+        if (!empty($data['documents']) && is_array($data['documents'])) {
+            foreach ($data['documents'] as $docId) {
+                $doc = CompanyDocument::find($docId);
+                if ($doc && file_exists(public_path($doc->document_path))) {
+                    $this->attach(public_path($doc->document_path));
+                    $attachments_string .= $doc->name . "<br>";
+                }
             }
         }
 
+        // Subject + Email body
+        $this->subject($subject)
+            ->from(getEmailSender(3)->email, getEmailSender(3)->name)
+            ->replyTo(optional($data['advisor'])->email, optional($data['advisor'])->name)
+            ->view("admin.inquiry.email.clientcare", compact('data'));
 
-
-
-        $this->subject($subject);
-        $description = $subject."<br>"."Attachments: ".$filename."<br>";
-        $email_content = $description.= view('admin.inquiry.email.clientcare',compact('data'));
-        $this->view("admin.inquiry.email.clientcare",compact('data'));
-
-        $this->from(getEmailSender(3)->email,getEmailSender(3)->name);
-
+        // Email log content
+        $description = $subject . "<br><b>Attachments:</b><br>" . $attachments_string;
+        $email_content = $description . view('admin.inquiry.email.clientcare', compact('data'))->render();
 
         CommunicationLog::create([
-          'to'=>$data['enquiry']->full_name,
-          'description'=>"clientcare",
-          'enquiry_id'=> $data['enquiry']->id,
-          'email_content'=>$email_content,
-          'basic_info_id'=>null,
-      ]);
+            'to' => $data['enquiry']->full_name,
+            'description' => "Client Care",
+            'enquiry_id' => $data['enquiry']->id,
+            'email_content' => $email_content,
+            'basic_info_id' => null,
+        ]);
+
         return $this;
-
-
     }
-
 
     public function createDocument($filename)
     {
         $client_id = $this->data['enquiry']->id;
 
-        $file_path = "/uploads/files/";
+        $folder = "/uploads/files/clientcares/";
         $file_name = time() . "_{$filename}";
 
-        $path = public_path('uploads/files/clientcares');
+        // Ensure folder exists
+        $path = public_path($folder);
         if (!File::isDirectory($path)) {
-
             File::makeDirectory($path, 0777, true, true);
         }
 
+        // Full DB path
+        $db = $folder . $file_name;
 
-
-        $db = "/clientcares/" . $file_name;
         $data = $this->data;
-        $pdf = PDF::loadView("admin.inquiry.pdf.client_care_another", compact('data'));
+        $pdf = Pdf::loadView("admin.inquiry.pdf.client_care_another", compact('data'));
+        $pdf->save(public_path($db));
 
-        $pdf->save(public_path($file_path . $db));
-
-        $document                    = new Document();
-        $document->enquiry_id     = $client_id;
-        $document->name         = $filename;
-        $document->note       = "Generated on " . date("d/M/Y H:i:s");
-        $document->documents      = $db;
-        $document->ftype      = 'pdf';
-        $document->created_by        = Auth::user()->id;
-        $document->created           = now();
-        $document->modified          = now();
-        $document->modified_by       = Auth::user()->id;
-
+        // Save Document record
+        $document = new Document();
+        $document->enquiry_id = $client_id;
+        $document->name = $filename;
+        $document->note = "Generated on " . date("d/M/Y H:i:s");
+        $document->documents = $db;
+        $document->ftype = 'pdf';
+        $document->created_by = Auth::id();
+        $document->created = now();
+        $document->modified = now();
+        $document->modified_by = Auth::id();
         $document->save();
 
         return $db;

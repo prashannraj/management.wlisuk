@@ -10,8 +10,8 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Auth;
-use PDF;
-use File;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 
 class CoaMail extends Mailable
@@ -49,19 +49,22 @@ class CoaMail extends Mailable
 
         // Attach uploaded files
         if (!empty($data['attachments'])) {
-            foreach ($data['attachments'] as $index => $path) {
-                $this->attach(storage_path('app/public/' . $path), [
-                    'as' => '0' . ($index + 2) . "_" . basename($path)
-                ]);
+            foreach ($data['attachments'] as $index => $file) {
+                if ($file instanceof \Illuminate\Http\UploadedFile) {
+                    $path = $file->store('attachments', 'public');
+                    $this->attach(storage_path('app/public/' . $path), [
+                        'as' => '0' . ($index + 2) . "_" . $file->getClientOriginalName(),
+                    ]);
+                }
             }
         }
 
         // Attach company documents
-        if (isset($data['documents']) && is_array($data['documents'])) {
+        if (!empty($data['documents']) && is_array($data['documents'])) {
             foreach ($data['documents'] as $documentId) {
                 $doc = CompanyDocument::find($documentId);
-                if ($doc && file_exists($doc->document_path)) {
-                    $this->attach($doc->document_path, ['as' => basename($doc->document_path)]);
+                if ($doc && file_exists(public_path($doc->document_path))) {
+                    $this->attach(public_path($doc->document_path), ['as' => basename($doc->document_path)]);
                 }
             }
         }
@@ -79,10 +82,11 @@ class CoaMail extends Mailable
 
         return $this->from(getEmailSender(3)->email, getEmailSender(3)->name)
             ->to($data['enquiry']->email)
-            ->replyTo($data['advisor']->email, $data['advisor']->name)
+            ->replyTo(optional($data['advisor'])->email, optional($data['advisor'])->name)
             ->subject($subject)
             ->view('admin.inquiry.email.clientofauthority', compact('data'));
     }
+
 
 
     public function createDocument($filename)

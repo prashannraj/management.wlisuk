@@ -6,13 +6,12 @@ use App\Models\CommunicationLog;
 use App\Models\CompanyDocument;
 use App\Models\Document;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Auth;
-use PDF;
-use File;
-use Illuminate\Support\Facades\Storage;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\File;
+
 
 class RtmMail extends Mailable
 {
@@ -43,23 +42,26 @@ class RtmMail extends Mailable
         $subject = "Att: ENQ{$data['enquiry']->id} - {$data['enquiry']->full_name} - Medical Data Request Form -{$data['requesttomedical']->paitent_name}";
         $filename = $data['filename'] . ".pdf";
 
-        // Attach generated PDF
-        $pdf_path = $this->createDocument($filename);
-        $this->attach(public_path('uploads/files' . $pdf_path), ['as' => "" . $filename]);
+            // Generate FO PDF and attach
+        $returnedPath = $this->createDocument($filename);
+        $this->attach(public_path($returnedPath), ['as' => "01_" . $filename]);
 
         // Attach uploaded files
         if (!empty($data['attachments'])) {
-            foreach ($data['attachments'] as $index => $path) {
-                $this->attach(storage_path('app/public/' . $path), [
-                    'as' => '0' . ($index + 2) . "_" . basename($path)
-                ]);
+            foreach ($data['attachments'] as $index => $file) {
+                if ($file instanceof \Illuminate\Http\UploadedFile) {
+                    $path = $file->store('attachments', 'public');
+                    $this->attach(storage_path('app/public/' . $path), [
+                        'as' => '0' . ($index + 2) . "_" . $file->getClientOriginalName(),
+                    ]);
+                }
             }
         }
 
-        // Attach company documents
-        if (isset($data['documents']) && is_array($data['documents'])) {
-            foreach ($data['documents'] as $documentId) {
-                $doc = CompanyDocument::find($documentId);
+        // Attach selected documents
+        if (!empty($data['documents']) && is_array($data['documents'])) {
+            foreach ($data['documents'] as $docId) {
+                $doc = CompanyDocument::find($docId);
                 if ($doc && file_exists($doc->document_path)) {
                     $this->attach($doc->document_path, ['as' => basename($doc->document_path)]);
                 }
@@ -89,23 +91,27 @@ class RtmMail extends Mailable
     {
         $client_id = $this->data['enquiry']->id;
 
-        $file_path = "/uploads/files/";
+        $folder = "/uploads/files/requesttomedical"; 
         $file_name = time() . "_{$filename}";
 
-        $path = public_path('uploads/files/requesttomedical');
-        if (!File::isDirectory($path)) {
-
-            File::makeDirectory($path, 0777, true, true);
+        // Ensure folder exists
+        $absPath = public_path($folder);
+        if (!File::isDirectory($absPath)) {
+            File::makeDirectory($absPath, 0777, true, true);
         }
 
+        // Full relative path to save in DB
+        $db   = $folder . $file_name;
 
-
-        $db = "/requesttomedical/" . $file_name;
         $data = $this->data;
+
         $pdf = PDF::loadView("admin.inquiry.pdf.request_to_medical", compact('data'));
+        $pdf->save(public_path($db));
 
-        $pdf->save(public_path($file_path . $db));
+        // Safe fallback for user id
+        $userId = Auth::check() ? Auth::id() : 0;
 
+    // Save document record
         $document                    = new Document();
         $document->enquiry_id     = $client_id;
         $document->name         = $filename;

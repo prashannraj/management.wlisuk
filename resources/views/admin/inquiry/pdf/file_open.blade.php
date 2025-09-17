@@ -111,7 +111,7 @@
     <p>{!! isset($data['content']) ? $data['content'] : '<b>Content is missing.</b>' !!}</p>
     <br>
     <br>
-    <table style="width:100%">
+<table style="width:100%">
         <tbody>
             <tr>
                 <td style="width:100%">
@@ -150,8 +150,7 @@
             </tr>
         </tbody>
     </table>
-
-
+   
 
 </body>
 

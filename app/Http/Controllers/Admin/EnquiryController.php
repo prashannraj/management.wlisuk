@@ -423,7 +423,7 @@ class EnquiryController extends BaseController
     }
 
 
- public function clientCare(Request $request, $id)
+  public function clientCare(Request $request, $id)
     {
 
     $data = $this->validate($request, [
@@ -710,8 +710,8 @@ class EnquiryController extends BaseController
             }
 
 
-    return back()->with("failed", "Invalid action specified.");
-}
+        return back()->with("failed", "Invalid action specified.");
+    }
 
 
 
@@ -1296,29 +1296,31 @@ class EnquiryController extends BaseController
     public function requestToTrbunal(Request $request, $id)
     {
         $enquiry = Enquiry::findOrFail($id);
+
+        // Validate input
         $data = $this->validate($request, [
-            'advisor_id'=> "required",
+            'advisor_id' => "required",
             'reference_number' => "nullable",
             'appellant_name' => "required",
             'content' => "required",
             'date' => "required",
             'date_of_birth' => "required",
             'current_address' => "required",
-            //'appeal_number' => "nullable",
             'sponsor_address' => "required",
             'contact_details' => "required",
             'contacted_by' => "required",
             'sex' => "required",
-            'attachments'=>'nullable|array',
-            'attachments.*'=>'file|max:5120',
-            'documents'=>'nullable|array',
-            'documents.*'=>'integer'
+            'attachments' => 'nullable|array',
+            'attachments.*' => 'file|max:5120',
+            'documents' => 'nullable|array',
+            'documents.*' => 'integer'
         ]);
-        // dd($data);
-        // Convert date to yyyy-mm-dd format before saving to the database
-            $data['date'] = Carbon::createFromFormat('d/m/Y', $data['date'])->format('Y-m-d');
-            $data['date_of_birth'] = Carbon::createFromFormat('d/m/Y', $data['date_of_birth'])->format('Y-m-d');
 
+        // Convert dates to Y-m-d
+        $data['date'] = Carbon::createFromFormat('d/m/Y', $data['date'])->format('Y-m-d');
+        $data['date_of_birth'] = Carbon::createFromFormat('d/m/Y', $data['date_of_birth'])->format('Y-m-d');
+
+        // Prepare tribunal data
         $trbunalData = [
             'enquiry_id' => $id,
             'advisor_id' => $data['advisor_id'],
@@ -1326,55 +1328,58 @@ class EnquiryController extends BaseController
             'appellant_name' => $data['appellant_name'],
             'content' => $data['content'],
             'current_address' => $data['current_address'],
-            //'appeal_number' => $data['appeal_number'],
             'sponsor_address' => $data['sponsor_address'],
             'sex' => $data['sex'],
             'contact_details' => $data['contact_details'],
             'date' => $data['date'],
             'date_of_birth' => $data['date_of_birth'],
             'contacted_by' => $data['contacted_by'],
-
         ];
 
-         // Handle attachments
-            if ($request->hasFile('attachments')) {
-                $data['attachments'] = $request->file('attachments'); // Keep the UploadedFile instances
-            } else {
-                $data['attachments'] = [];  // Ensure it is an empty array if no files are uploaded
-            }
+        // Handle attachments safely
+        $data['attachments'] = $request->hasFile('attachments') ? $request->file('attachments') : [];
 
-
+        // Base data
         $data['company_info'] = CompanyInfo::first();
-        $data['enquiry'] = Enquiry::findOrFail($id);
+        $data['enquiry'] = $enquiry;
         $data['advisor'] = Advisor::find($data['advisor_id']);
 
         if (!$data['advisor']) {
-        return back()->with("failed", "Advisor not found.");
+            return back()->with("failed", "Advisor not found.");
         }
 
         $data['enquiry_id'] = $id;
-        $data['filename'] = "ENQ{$data['enquiry']->id} - {$data['enquiry']->full_name} - Request_Access_to_Tribunal_Determintion";
+        $data['filename'] = "ENQ{$enquiry->id} - {$enquiry->full_name} - Request_Access_to_Tribunal_Determintion";
         $data['content'] = $request->input('content');
 
-        // Save letter to firms data
+        // Email action
         if ($request->action === "Email") {
             $data['requesttotrbunal'] = RequestToTrbunal::where('enquiry_id', $id)->first();
-            // Send email
+
+            // Safe fallback if record not found
+            if (!$data['requesttotrbunal']) {
+                $data['requesttotrbunal'] = new RequestToTrbunal;
+                $data['requesttotrbunal']->appellant_name = $enquiry->full_name;
+                $data['requesttotrbunal']->client_name = $enquiry->full_name;
+            }
 
             Mail::send(new RttMail($data));
             return back()->with("success", "Successfully sent email for request access to tribunal record");
         }
 
+        // Save action
         if ($request->action === "Save") {
             RequestToTrbunal::updateOrCreate(['enquiry_id' => $id], $trbunalData);
             return back()->with("success", "Successfully saved Request access to Tribunal Determination");
         }
 
+        // Download action
         if ($request->action === "Download") {
             $pdf = PDF::loadView("admin.inquiry.pdf.request_to_trbunal", compact('data'));
             return $pdf->download($data['filename'] . ".pdf");
         }
 
+        // Preview action
         if ($request->action === "Preview") {
             $pdf = PDF::loadView("admin.inquiry.pdf.request_to_trbunal", compact('data'));
             return $pdf->stream();
@@ -1382,6 +1387,7 @@ class EnquiryController extends BaseController
 
         return back()->with("error", "Invalid action specified.");
     }
+
 
     public function showRequestToTrbunal($id)
     {
@@ -1645,7 +1651,7 @@ class EnquiryController extends BaseController
         return view('admin.inquiry.client_of_authority', compact('data'));
     }
 
-        public function fileOpeningForm(Request $request, $id)
+    public function fileOpeningForm(Request $request, $id)
     {
         // Validate request
         $data = $this->validate($request, [
@@ -1748,44 +1754,44 @@ class EnquiryController extends BaseController
 
     public function showFileOpeningForm($id)
     {
-        $data = array();
-        $data['enquiry'] = Enquiry::with('clientcare')->findOrFail($id);
-        $data['fileopeningform'] = FileOpeningForm::where('enquiry_id', $id)->first();
+        $data = [];
 
+        $data['enquiry'] = Enquiry::with('clientcare')->findOrFail($id);
+
+        $data['fileopeningform'] = FileOpeningForm::where('enquiry_id', $id)->first();
         if ($data['fileopeningform'] == null) {
             $data['fileopeningform'] = new FileOpeningForm;
             $data['fileopeningform']->full_address = optional($data['enquiry']->address)->full_address;
         }
 
-        // Predefined list of words
-            $words = ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon'];
-            $randomWord = $words[array_rand($words)];
+        // Random word payload
+        $words = ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon'];
+        $randomWord = $words[array_rand($words)];
+        $data['payload'] = ['word' => $randomWord];
 
-            // Set the payload with a random word
-            $data['payload'] = [
-                'word' => $randomWord,
-            ];
+        $data['enquirycare'] = EnquiryCare::where('enquiry_id', $id)->first() ?? new EnquiryCare;
 
-        $data['enquirycare'] = EnquiryCare::where('enquiry_id', $id)->first();
-        if ($data['enquirycare'] == null) {
-            $data['enquirycare'] = new EnquiryCare;
-        }
         $data['country_code'] = $this->country_code;
-        $data['currencies'] = IsoCurrency::all();
-        $data['banks'] = Bank::whereStatus("active")->get();
-        $data['documents']= CompanyDocument::all();
-        $data['advisors'] = Advisor::whereStatus("active")->get();
-        $data['advisor'] = Advisor::find($data['fileopeningform']['advisor_id']);
-        //$data['enquiry_id'] = $data['clientcare']['enquiry_id'];
-        $data['company_info'] = CompanyInfo::first();
-        $data['countries'] = IsoCountry::orderBy("order", "desc")->get();
-        //$data['countries'] = IsoCountry::all();
-        $data['selected_country'] = IsoCountry::find($data['fileopeningform']->iso_country_id)->title ?? '';
+        $data['currencies']   = IsoCurrency::all();
+        $data['banks']        = Bank::whereStatus("active")->get();
+        $data['documents']    = CompanyDocument::all();
+        $data['advisors']     = Advisor::whereStatus("active")->get();
 
-        //$data['authority_content'] = $data['clientcare']['authority_content'];
+        // ✅ fixed advisor fetch
+        $data['advisor'] = Advisor::find(optional($data['fileopeningform'])->advisor_id);
+
+        $data['company_info'] = CompanyInfo::first();
+        $data['countries']    = IsoCountry::orderBy("order", "desc")->get();
+
+        // ✅ fixed country fetch
+        $data['selected_country'] = optional(
+            IsoCountry::find(optional($data['fileopeningform'])->iso_country_id)
+        )->title ?? '';
 
         return view('admin.inquiry.file_open', compact('data'));
     }
+
+
 
     public function lteCcl(Request $request, $id)
     {

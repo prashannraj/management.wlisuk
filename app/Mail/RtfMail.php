@@ -6,71 +6,75 @@ use App\Models\CommunicationLog;
 use App\Models\CompanyDocument;
 use App\Models\Document;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Auth;
-use PDF;
-use File;
-use Illuminate\Support\Facades\Storage;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\File;
 
 class RtfMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    /**
-     * Create a new message instance.
-     *
-     * @return void
-     */
-
     private $data;
-    public function __construct($dat)
+
+    public function __construct(array $dat)
     {
-        //
         $this->data = $dat;
     }
 
-    /**
-     * Build the message.
-     *
-     * @return $this
-     */
     public function build()
     {
         $data = $this->data;
 
-        $subject = "Att: ENQ{$data['enquiry']->id} - Request for Tribunal Determination Letter - to be signed by - {$data['requesttotrbunal']->appellant_name}";
+        $subject = "Att: ENQ{$data['enquiry']->id} - {$data['requesttofinance']->client_name} - Financial Data Request Form";
+
         $filename = $data['filename'] . ".pdf";
 
         // Attach generated PDF
         $pdf_path = $this->createDocument($filename);
-        $this->attach(public_path('uploads/files' . $pdf_path), ['as' => "01_" . $filename]);
+        $fullPdfPath = public_path($pdf_path);
+        if (file_exists($fullPdfPath)) {
+            $this->attach($fullPdfPath, ['as' => "01_" . $filename]);
+        }
 
-        // Attach uploaded files
-        if (!empty($data['attachments'])) {
-            foreach ($data['attachments'] as $index => $path) {
-                $this->attach(storage_path('app/public/' . $path), [
-                    'as' => '0' . ($index + 2) . "_" . basename($path)
-                ]);
+        // Attach uploaded files (UploadedFile instances or paths)
+        if (!empty($data['attachments']) && is_array($data['attachments'])) {
+            foreach ($data['attachments'] as $index => $file) {
+                if ($file instanceof \Illuminate\Http\UploadedFile) {
+                    $path = $file->store('attachments', 'public');
+                    $fullPath = storage_path('app/public/' . $path);
+                    if (file_exists($fullPath)) {
+                        $this->attach($fullPath, [
+                            'as' => '0' . ($index + 2) . "_" . $file->getClientOriginalName(),
+                        ]);
+                    }
+                } elseif (is_string($file)) {
+                    $fullPath = storage_path('app/public/' . $file);
+                    if (file_exists($fullPath)) {
+                        $this->attach($fullPath, [
+                            'as' => '0' . ($index + 2) . "_" . basename($file),
+                        ]);
+                    }
+                }
             }
         }
 
-        // Attach company documents
-        if (isset($data['documents']) && is_array($data['documents'])) {
+        // Attach company documents safely
+        if (!empty($data['documents']) && is_array($data['documents'])) {
             foreach ($data['documents'] as $documentId) {
                 $doc = CompanyDocument::find($documentId);
-                if ($doc && file_exists($doc->document_path)) {
+                if ($doc && !empty($doc->document_path) && file_exists($doc->document_path)) {
                     $this->attach($doc->document_path, ['as' => basename($doc->document_path)]);
                 }
             }
         }
 
         // Email body and log
-        $email_content = view('admin.inquiry.email.requesttotrbunal', compact('data'))->render();
+        $email_content = view('admin.inquiry.email.requesttofinance', compact('data'))->render();
 
-        CommunicationLog::create([
-            'to' => $data['requesttotrbunal']->client_name,
+         CommunicationLog::create([
+            'to' => $data['requesttofinance']->client_name,
             'description' => "Request To Finance",
             'enquiry_id' => $data['enquiry']->id,
             'email_content' => $email_content,
@@ -79,46 +83,49 @@ class RtfMail extends Mailable
 
         return $this->from(getEmailSender(3)->email, getEmailSender(3)->name)
             ->to(getEmailSender(3)->email)
-            ->replyTo($data['advisor']->email, $data['advisor']->name)
+            ->replyTo(
+                optional($data['advisor'])->email ?? getEmailSender(3)->email,
+                optional($data['advisor'])->name ?? getEmailSender(3)->name
+            )
             ->subject($subject)
-            ->view('admin.inquiry.email.requesttotrbunal', compact('data'));
+            ->view('admin.inquiry.email.requesttofinance', compact('data'));
     }
 
-
-    public function createDocument($filename)
+    private function createDocument(string $filename): string
     {
-        $client_id = $this->data['enquiry']->id;
+        $clientId = $this->data['enquiry']->id ?? 0;
 
-        $file_path = "/uploads/files/";
-        $file_name = time() . "_{$filename}";
+        $folder = "/uploads/files/requesttofinance/";
+        $fileName = time() . "_{$filename}";
 
-        $path = public_path('uploads/files/requesttotrbunal');
-        if (!File::isDirectory($path)) {
-
-            File::makeDirectory($path, 0777, true, true);
+        // Ensure folder exists
+        $absPath = public_path($folder);
+        if (!File::isDirectory($absPath)) {
+            File::makeDirectory($absPath, 0777, true, true);
         }
 
+        $relativePath = $folder . $fileName;
 
-
-        $db = "/requesttotrbunal/" . $file_name;
         $data = $this->data;
-        $pdf = PDF::loadView("admin.inquiry.pdf.request_to_trbunal", compact('data'));
 
-        $pdf->save(public_path($file_path . $db));
+        $pdf = Pdf::loadView("admin.inquiry.pdf.request_to_finance", compact('data'));
+        $pdf->save(public_path($relativePath));
 
-        $document                    = new Document();
-        $document->enquiry_id     = $client_id;
-        $document->name         = $filename;
-        $document->note       = "Generated on " . date("d/M/Y H:i:s");
-        $document->documents      = $db;
-        $document->ftype      = 'pdf';
-        $document->created_by        = Auth::user()->id;
-        $document->created           = now();
-        $document->modified          = now();
-        $document->modified_by       = Auth::user()->id;
+        // Save document record safely
+        $userId = Auth::check() ? Auth::id() : 0;
 
+        $document = new Document();
+        $document->enquiry_id  = $clientId;
+        $document->name        = $filename;
+        $document->note        = "Generated on " . date("d/M/Y H:i:s");
+        $document->documents   = $relativePath;
+        $document->ftype       = 'pdf';
+        $document->created_by  = $userId;
+        $document->created     = now();
+        $document->modified    = now();
+        $document->modified_by = $userId;
         $document->save();
 
-        return $db;
+        return $relativePath;
     }
 }
