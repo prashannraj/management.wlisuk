@@ -27,18 +27,18 @@
     </div>
 
     <div class="form-group col-md-4">
-        <label>First Name</label>
+        <label>First Name(s)</label>
         <input type="text" name='f_name' required class="form-control" id="inputName" value="{{old('f_name',optional($row)->f_name)}}" placeholder="First Name">
         {!! isError($errors, 'f_name') !!}
 
     </div>
 
-    <div class="form-group col-md-4">
+   {{--- <div class="form-group col-md-4">
         <label>Middle Name</label>
         <input type="text" name='m_name' class="form-control" id="inputName" value="{{old('m_name',optional($row)->m_name)}}" placeholder="Middle Name">
         {!! isError($errors, 'm_name') !!}
 
-    </div>
+    </div>---}}
 
     <div class="form-group col-md-4">
         <label>Last Name</label>
@@ -72,10 +72,10 @@
 <div class="form-row">
     <div class="form-group col-md-6">
         <label for="">Mobile country code</label>
-        <select name="country_iso_mobile" required class="form-control">
+        <select name='country_code' required class="form-control">
             <option value="">Select an option</option>
             @foreach($data['countries'] as $country)
-            <option value="{{$country->id}}" {{ old('country_iso_mobile', optional($row)->country_iso_mobile) == $country->id ? "selected" : "" }}>{{$country->title}} ({{$country->calling_code}})</option>
+            <option value="{{$country->id}}" {{old('country_code',optional($row)->country_iso_mobile) == $country->id?"selected":""}}>{{$country->title}} ({{$country->calling_code}})</option>
             @endforeach
         </select>
 
@@ -85,12 +85,12 @@
 
     <div class="form-group col-md-6">
         <label>Mobile Number</label>
-        <input type="text" name="mobile" required class="form-control" value="{{ old('mobile', optional($row)->mobile) }}" placeholder="Contact number">
+        <input type="text" name='contact_number' required class="form-control" id="" value="{{old('contact_number',optional($row)->mobile)}}" placeholder="Contact number">
         {!! isError($errors, 'contact_number') !!}
 
     </div>
 
-
+    
 </div>
 <p>Address details</p>
 
@@ -110,7 +110,7 @@
 
     <div class="form-group col-md-4">
         <label>Address</label>
-        <input type="text" name='appellant_address' class="form-control" id="" value="{{old('appellant_address',optional($row)->appellant_address)}}" placeholder="address">
+        <input type="text" name='appellant_address' class="form-control" id="" value="{{old('appellant_address',optional($row)->appellant_address)}}" placeholder="Address">
         {!! isError($errors, 'appellant_address') !!}
 
     </div>
@@ -122,11 +122,11 @@
 
     </div>
 
-
+    
 </div>
 <div class="form-group">
     <label>Enquiry/Instruction</label>
-    <textarea name="additional_details" class="form-control" placeholder="Enquiry/Instructions">{{ old('additional_details', optional($row)->additional_details) }}</textarea>
+    <textarea class="form-control" id="inputmessage" name='enquiry' placeholder="Enquiry/Instructions">{{old('enquiry',optional($row)->enquiry)}}</textarea>
     {!! isError($errors, 'enquiry') !!}
 
 </div>
