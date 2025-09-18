@@ -1,38 +1,46 @@
 @extends('layouts.master')
 
 @push('styles')
-    <link rel="stylesheet" type="text/css"
-        href="{{ asset('assets/vendor/bootstrap-datepicker/dist/css/bootstrap-datepicker.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ asset('assets/vendor/bootstrap-datepicker/dist/css/bootstrap-datepicker.min.css') }}">
 @endpush
 
 @section('header')
-    <!-- Header -->
     <div class="header bg-wlis pb-6">
         <div class="container-fluid">
             <div class="header-body">
                 <div class="row align-items-center py-4">
                     <div class="col-lg-6 col-7">
-                        <h6 class="h2 text-white d-inline-block mb-0">Send client care letter for {{ $data['enquiry']->full_name }}
-                        </h6>
+                        <h6 class="h2 text-white d-inline-block mb-0">Send CCL Appeal - Gurkha - Child (LTE) for {{ $data['enquiry']->full_name }}</h6>
                     </div>
                     <div class="col-lg-6 col-5 text-right">
                         <a href="{{ route('enquiry.log', $data['enquiry']->id) }}" class="btn btn-sm btn-neutral">
-                            <i class="fas fa-chevron-left"></i> Back To Enquiry</a>
+                            <i class="fas fa-chevron-left"></i> Back To Enquiry
+                        </a>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 @endsection
+
 @section('main-content')
     <div>
+        @if(session('success'))
+            <div class="alert alert-success">
+                {{ session('success') }}
+            </div>
+        @endif
+    
+        @if(session('failed'))
+            <div class="alert alert-danger">
+                {{ session('failed') }}
+            </div>
+        @endif
+
         @foreach ($errors->all() as $error)
             <p class='alert alert-warning'>{{ $error }}</p>
         @endforeach
     </div>
-
-
-
 
     <div class="card" id="clientcare_form">
         <div class="card-header">
@@ -40,33 +48,63 @@
         </div>
 
         <div class="card-body">
-            <form action="{{ route('enquiry.lteccl', $data['enquiry']->id) }}" enctype="multipart/form-data"
-                method="post">
+            <form action="{{ route('enquiry.lteccl', $data['enquiry']->id) }}" enctype="multipart/form-data" method="post">
                 @csrf
                 <div class="row">
                     <div class="col-md-12">
                         <div class="form-group">
                             <label for="">Full Name:</label>
-                            <input type="text" name="full_name_with_title" id="full_name_with_title" class="form-control"
-                                value="{{ $data['lteccl']->full_name_with_title ?? $data['enquiry']->full_name_with_title }}">
+                            <input type="text" name="full_name_with_title" id="full_name_with_title" class="form-control" value="{{ $data['lteccl']->full_name_with_title ?? $data['enquiry']->full_name_with_title }}">
                         </div>
                     </div>
 
                     <div class="col-md-6">
-                        @php
-                            $full_address = optional($data['enquiry']->address)->full_address;
-                        @endphp
                         <div class="form-group">
-                            <label for="">Full address</label>
-                            <p>{{ $full_address }}</p>
-                            <textarea name="full_address" class='form-control wysiwyg' rows='3'>
-                            {{ nl2br(str_replace(',', "\n", $full_address)) }}
-                        </textarea>
+                            <label for="">Full Address:</label>
+                            <p>{{ optional($data['enquiry']->address)->full_address }}</p>
+                            <textarea name="full_address" class='form-control wysiwyg' rows='3'>{{ nl2br(str_replace(',', "\n", optional($data['enquiry']->address)->full_address)) }}</textarea>
                         </div>
-
                     </div>
 
                     <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="">Application Location:</label>
+                            <p>
+                                @if(isset($data['rawInquiry']) && $data['rawInquiry'] != null)
+                                    {{ $data['rawInquiry']->applicationLocation }}
+                                @else
+                                    <span>No application location available</span>
+                                @endif
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="">Refusal Letter Date:</label>
+                            <p>
+                                @if(isset($data['rawInquiry']) && $data['rawInquiry'] != null && !empty($data['rawInquiry']->refusalLetterDate))
+                                    {{ \Carbon\Carbon::parse($data['rawInquiry']->refusalLetterDate)->format('d F Y') }}
+                                @else
+                                    <span>No refusal letter date available</span>
+                                @endif
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="">Refusal Received Date:</label>
+                            <p>
+                                @if(isset($data['rawInquiry']) && $data['rawInquiry'] != null && !empty($data['rawInquiry']->refusalreceivedDate))
+                                    {{ \Carbon\Carbon::parse($data['rawInquiry']->refusalreceivedDate)->format('d F Y') }}
+                                @else
+                                    <span>No refusal received date available</span>
+                                @endif
+                            </p>
+                        </div>
+                    </div>
+			<div class="col-md-6">
                         <div class="form-group">
                             <label for="">Date</label>
                             <input type="text" name="date" id="date" class="form-control datepicker2" value="{{ old('date', \Carbon\Carbon::parse(optional($data['lteccl'])->date)->format('d/m/Y')) }}">
@@ -80,47 +118,40 @@
                         </div>
                     </div>
 
+
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label for="">Visa Application Submitted Date</label>
-                            <input type="text" class="form-control datepicker2" name='visa_application_submitted'
-                            value="{{ old('visa_application_submitted', optional($data['lteccl'])->visa_application_submitted ? \Carbon\Carbon::parse($data['lteccl']->visa_application_submitted)->format('d/m/Y') : '') }}" placeholder="dd/mm/yyyy">
+                            <label for="">Visa Application Submitted Date:</label>
+                            <input type="text" class="form-control datepicker2" name='visa_application_submitted' value="{{ old('visa_application_submitted', optional($data['lteccl'])->visa_application_submitted ? \Carbon\Carbon::parse($data['lteccl']->visa_application_submitted)->format('d/m/Y') : '') }}" placeholder="dd/mm/yyyy">
                         </div>
                     </div>
 
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label for="">Select Advisor</label>
+                            <label for="">Select Advisor:</label>
                             <select name="advisor_id" class="form-control">
                                 <option value="">Select an advisor</option>
                                 @foreach ($data['advisors'] as $advisor)
-                                    <option
-                                        {{ old('advisor_id', optional($data['lteccl'])->advisor_id) == $advisor->id ? 'selected' : '' }}
-                                        value="{{ $advisor->id }}">{{ $advisor->name }}</option>
+                                    <option {{ old('advisor_id', optional($data['lteccl'])->advisor_id) == $advisor->id ? 'selected' : '' }} value="{{ $advisor->id }}">{{ $advisor->name }}</option>
                                 @endforeach
                             </select>
                         </div>
                     </div>
 
-
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label for="">Select Service Fee</label>
-                            <select placeholder="Type here to quickly fill up client details" name='servicefee_id'
-                                class='form-control servicefeeautocomplete'></select>
-
+                            <label for="">Select Service Fee:</label>
+                            <select name='servicefee_id' class='form-control servicefeeautocomplete'></select>
                         </div>
                     </div>
 
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label for="">Select Bank</label>
+                            <label for="">Select Bank:</label>
                             <select name="bank_id" class="form-control">
                                 <option value="">Select a bank</option>
                                 @foreach ($data['banks'] as $bank)
-                                    <option
-                                        {{ old('bank_id', optional($data['lteccl'])->bank_id) == $bank->id ? 'selected' : '' }}
-                                        value="{{ $bank->id }}">{{ $bank->title }}</option>
+                                    <option {{ old('bank_id', optional($data['lteccl'])->bank_id) == $bank->id ? 'selected' : '' }} value="{{ $bank->id }}">{{ $bank->title }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -128,13 +159,11 @@
 
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label for="">Agreed Fee Currency</label>
+                            <label for="">Agreed Fee Currency:</label>
                             <select name="agreed_fee_currency_id" class="form-control">
                                 <option value="">Select currency</option>
                                 @foreach ($data['currencies'] as $currency)
-                                    <option
-                                        {{ old('agreed_fee_currency_id', optional($data['lteccl'])->agreed_fee_currency_id) == $currency->id ? 'selected' : '' }}
-                                        value="{{ $currency->id }}">{{ $currency->title }}</option>
+                                    <option {{ old('agreed_fee_currency_id', optional($data['lteccl'])->agreed_fee_currency_id) == $currency->id ? 'selected' : '' }} value="{{ $currency->id }}">{{ $currency->title }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -142,118 +171,107 @@
 
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label for="">Visa Type</label>
-                            <input type="text"
-                                value="{{ old('visa_type', optional($data['lteccl'])->visa_type) }}"
-                                class="form-control" name='visa_type'>
-                        </div>
-                    </div>
-
-
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="">Agreed Fee</label>
-                            <input type="text"
-                                value="{{ old('agreed_fee', optional($data['lteccl'])->agreed_fee) }}"
-                                class="form-control" name='agreed_fee'>
+                            <label for="">Visa Type:</label>
+                            <input type="text" value="{{ old('visa_type', optional($data['lteccl'])->visa_type) }}" class="form-control" name='visa_type'>
                         </div>
                     </div>
 
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label for="">Tribunal Fee</label>
-                            <input type="text"
-                                value="{{ old('tribunal_fee', optional($data['lteccl'])->tribunal_fee) }}"
-                                class="form-control" name='tribunal_fee'>
+                            <label for="">Agreed Fee:</label>
+                            <input type="text" value="{{ old('agreed_fee', optional($data['lteccl'])->agreed_fee) }}" class="form-control" name='agreed_fee'>
                         </div>
                     </div>
 
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label for="">Vat</label>
-                            <input type="text"
-                                value="{{ old('vat', optional($data['lteccl'])->vat) }}"
-                                class="form-control" name='vat'>
+                            <label for="">Tribunal Fee:</label>
+                            <input type="text" value="{{ old('tribunal_fee', optional($data['lteccl'])->tribunal_fee) }}" class="form-control" name='tribunal_fee'>
                         </div>
                     </div>
 
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label for="">Travel Fee</label>
-                            <input type="text"
-                                value="{{ old('travel_fee', optional($data['lteccl'])->travel_fee) }}"
-                                class="form-control" name='travel_fee'>
+                            <label for="">VAT:</label>
+                            <input type="text" value="{{ old('vat', optional($data['lteccl'])->vat ?? 20) }}" class="form-control" name='vat'>
                         </div>
                     </div>
 
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label for="">FtT Re-appearance Fee</label>
-                            <input type="text"
-                                value="{{ old('reappear_fee', optional($data['lteccl'])->reappear_fee) }}"
-                                class="form-control" name='reappear_fee'>
+                            <label for="">Travel Fee:</label>
+                            <input type="text" value="{{ old('travel_fee', optional($data['lteccl'])->travel_fee) }}" class="form-control" name='travel_fee'>
                         </div>
                     </div>
 
-                    <div class="col-md-12"> <!-- Full width for new textarea -->
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="">FtT Re-appearance Fee:</label>
+                            <input type="text" value="{{ old('reappear_fee', optional($data['lteccl'])->reappear_fee) }}" class="form-control" name='reappear_fee'>
+                        </div>
+                    </div>
+
+                    <div class="col-md-12">
                         <div class="form-group">
                             <label for="additional_notes">Discussion/Notes:</label>
-                            <textarea id="c" name="additional_notes" class='form-control wysiwyg' rows='3'
-                                placeholder="Enter any additional notes here...">{{ old('additional_notes', optional($data['lteccl'])->additional_notes) }}</textarea>
+                            <textarea id="c" name="additional_notes" class='form-control wysiwyg' rows='3' placeholder="Enter any additional notes here...">{{ old('additional_notes', optional($data['lteccl'])->additional_notes) }}</textarea>
                         </div>
                     </div>
 
-
-                    <!-- Load Content Button -->
                     <div class="col-md-12">
                         <button type="button" id="loadBtn" class="btn btn-primary">Click on Save Button to Load Content</button>
                     </div>
+
                     <div class="col-md-12">
                         <div class="form-group">
-                            <label for="">Client Care Cover Leter</label>
+                            <label for="">Client Care Cover Letter:</label>
                             <textarea id="discussion_details" name="discussion_details" class="form-control wysiwyg" rows="10">
-                                <p>Thank you for instructing <strong>{{ $data['company_info']->name ?? 'Default text here' }}</strong> We are a regulated by <strong>{{ $data['company_info']->regulated_by }}</strong>. We are authorised to provide immigration advice and services in the categories of <strong>{{ $data['advisor']->category ?? 'Default category here' }}</strong>. Our registration number is <strong>{{ $data['company_info']->regulation_no }}</strong>.</p>
-
+                                <p>Thank you for instructing <strong>{{ $data['company_info']->name ?? 'Default text here' }}</strong>. We are regulated by <strong>{{ $data['company_info']->regulated_by }}</strong>. We are authorised to provide immigration advice and services in the categories of <strong>{{ $data['advisor']->category ?? 'Default category here' }}</strong>. Our registration number is <strong>{{ $data['company_info']->regulation_no }}</strong>.</p>
                                 <p>Thank you for your instructions. Thank you for instructing me to act on your behalf about your immigration matter.</p>
-
                                 <h3 style="text-decoration: underline;">Who is dealing with your case?</h3>
                                 <p>My name is <strong>{{ $data['advisor']->name ?? 'Default name here' }}</strong> and I will be handling your case. I am authorised to provide immigration advice and services at <strong>{{ $data['advisor']->level ?? 'Default name here' }}</strong> in the categories of <strong>{{ $data['advisor']->category ?? 'Default category here' }}</strong>.</p>
-
                                 <h3 style="text-decoration: underline;">Key details about your case:</h3>
                                 @php
-                                    use Carbon\Carbon;
-
                                     $appealDeadline = null;
-                                    if (!empty($data['rawInquiry']->refusalreceivedDate)) {
-                                        $refusalDate = Carbon::parse($data['rawInquiry']->refusalreceivedDate);
-                                        $appealDeadline = $refusalDate->addDays(28)->format('d F Y'); // Adding 28 days and formatting the date
+                                
+                                    // location निकाल्ने (null-safe)
+                                    $applicationLocation = optional($data['rawInquiry'])->applicationLocation;
+                                
+                                    // refusal date भए मात्र हिसाब गर्ने
+                                    if (!empty(optional($data['rawInquiry'])->refusalreceivedDate)) {
+                                        $refusalDate = \Carbon\Carbon::parse($data['rawInquiry']->refusalreceivedDate);
+                                
+                                        if ($applicationLocation === 'Outside the UK') {
+                                            $appealDeadline = $refusalDate->addDays(28)->format('d F Y');
+                                        } elseif ($applicationLocation === 'Inside the UK') {
+                                            $appealDeadline = $refusalDate->addDays(14)->format('d F Y');
+                                        }
                                     }
                                 @endphp
+
                                 <ul>
-                                    <li>Visa application submitted: <strong>{{ \Carbon\Carbon::parse($data['lteccl']->visa_application_submitted)->format('d F Y') ?? 'Default date' }}</strong></li>
-                                    <li>Application type: <strong>{{$data['rawInquiry']->form_type ?? ""}}</strong></li>
-                                    <li>Refusal letter date (DD/MM/YYYY): <strong>{{ \Carbon\Carbon::parse($data['rawInquiry']->refusalLetterDate)->format('d F Y') ?? ""}}</strong></li>
-                                    <li>Refusal received date (DD/MM/YYYY):<strong> {{ \Carbon\Carbon::parse($data['rawInquiry']->refusalreceivedDate)->format('d F Y') ?? ""}}</strong></li>
-                                    <li>Where was the application made:<strong> {{$data['rawInquiry']->applicationLocation ?? ""}}</strong></li>
-                                    <li>Visa application (UAN/GWF Number):<strong> {{$data['rawInquiry']->uan ?? ""}}</strong></li>
-                                    <li>Post Reference/HO Ref:<strong> {{$data['rawInquiry']->ho_ref ?? ""}}</strong></li>
-                                    <li>How was the decision received:<strong> {{$data['rawInquiry']->method_decision_received ?? ""}}</strong></li>
-                                    <li>Sponsors Name (if applicable):<strong> {{$data['rawInquiry']->sponsor_name ?? ""}}</strong></li>
-                                    <li>Relationship with the sponsor: <strong>{{$data['rawInquiry']->sponsor_relationship ?? ""}}</strong></li>
+                                    <li>Visa application submitted: <strong>{{ \Carbon\Carbon::parse($data['lteccl']->visa_application_submitted)->format('d F Y') ?? '' }}</strong></li>
+                                    <li>Application type: <strong>{{ $data['lteccl']->visa_type ?? "" }}</strong></li>
+                                    <li>Refusal letter date: <strong>{{ isset($data['rawInquiry']) && $data['rawInquiry'] != null && !empty($data['rawInquiry']->refusalLetterDate) ? \Carbon\Carbon::parse($data['rawInquiry']->refusalLetterDate)->format('d F Y') : '' }}</strong></li>
+                                    <li>Refusal received date: <strong>{{ isset($data['rawInquiry']) && $data['rawInquiry'] != null && !empty($data['rawInquiry']->refusalreceivedDate) ? \Carbon\Carbon::parse($data['rawInquiry']->refusalreceivedDate)->format('d F Y') : '' }}</strong></li>
+                                    <li>Where was the application made: <strong>{{ $data['rawInquiry']->applicationLocation ?? '' }}</strong></li>
+                                    <li>Visa application (UAN/GWF Number): <strong>{{ $data['rawInquiry']->uan ?? '' }}</strong></li>
+                                    <li>Post Reference/HO Ref: <strong>{{ $data['rawInquiry']->ho_ref ?? '' }}</strong></li>
+                                    <li>How was the decision received: <strong>{{ $data['rawInquiry']->method_decision_received ?? '' }}</strong></li>
+                                    <li>Sponsors Name (if applicable): <strong>{{ $data['rawInquiry']->sponsor_name ?? '' }}</strong></li>
+                                    <li>Relationship with the sponsor: <strong>{{ $data['rawInquiry']->sponsor_relationship ?? '' }}</strong></li>
                                     <li>Appeal deadline: <strong>{{ \Carbon\Carbon::parse( $appealDeadline)->format('d F Y') ?? 'N/A' }}</strong></li>
                                 </ul>
-
                                 <h3 style="text-decoration: underline;">INSTRUCTIONS/DISCUSSIONS</h3>
-                                <p>I write further to our discussion on the (<strong>{{ \Carbon\Carbon::parse($data['lteccl']->discussion_date)->format('d F Y') ?? 'Default discussion date'}}</strong>) when you instructed me to act for you in connection with your Entry clearance application and its refusal.</p>
-                                <p>{{$data['lteccl']->additional_notes ?? 'Default discussion notes'}}</p>
+                                <p>I write further to our discussion on the (<strong>{{ \Carbon\Carbon::parse($data['lteccl']->discussion_date)->format('d F Y') ?? 'Default discussion date' }}</strong>) when you instructed me to act for you in connection with your Entry clearance application and its refusal.</p>
+                                <p>{{ $data['lteccl']->additional_notes ?? 'Default discussion notes' }}</p>
                                 <h3 style="text-decoration: underline;">Reason for the refusal:</h3>
                                 <p>I read to you the reason for refusal given to you by the Home Office and explained to you what they mean in a simple term.</p>
-
                                 <h3 style="text-decoration: underline;">Advice Given:</h3>
                                 <ul>
                                     <li>I advised you that you must submit the appeal before the deadline (<strong>{{ $appealDeadline ?? 'N/A' }}</strong>) as advised above.</li>
                                     <li>I advised you that your application was refused as home office claims you do not meet the immigration rules and the above reasons for refusal.</li>
-                                    <li>I advised to you that we can bring the appeal to the first-tier tribunal under section 82(1)(b) of the Nationality Immigration and Asylum Act 2002 ("the 2002 Act") (as amended), against the decision of the Respondent (Home Office) to refuse a human rights claim.</li>
+                                    <li>I advised you that we can bring the appeal to the first-tier tribunal under section 82(1)(b) of the Nationality Immigration and Asylum Act 2002 ("the 2002 Act") (as amended), against the decision of the Respondent (Home Office) to refuse a human rights claim.</li>
                                     <li>I also advised you that the appeal can be brought to the first-tier tribunal on the basis of the only ground available under section 84(2) of the 2002 Act (as amended), namely that the decision is unlawful under section 6 of the Human Rights Act 1998.</li>
                                     <li>I also advised you that the appeal can be brought to the first-tier tribunal on the basis the decision is unlawful under section 6(1) of the Human Rights Act 1998 because it creates a real risk of a breach of the following articles of the European Convention on Human Rights:</li>
                                     <ul>
@@ -262,9 +280,7 @@
                                     <li><b>I also advised you that your appeal is also based on the historic injustice your father faced and the grant of delayed settlement.</b></li>
                                     <li><b>I also advised you that the success of the matter is not guaranteed and is influenced by many factors which I will explain below.</b></li>
                                 </ul>
-
                                 <p>We will assist in preparing the appeal against the decision. Once the appeal is submitted with the grounds, we will receive direction to prepare for court hearing. We will reach out to the Sponsor, Appellants or any Witnesses in support of this appeal matter.</p>
-
                                 <p>You and your sponsor and additional corroborating witnesses will be invited to provide a detailed statement and all evidence relating to your family life with your sponsor. This evidence can include:</p>
                                 <ul>
                                     <li><b>Travel records</b> shown in your passport.</li>
@@ -276,18 +292,13 @@
                                         <li>Proof that either your parents/sponsor or you are claiming a family life with support you, or you support them.</li>
                                     </ul>
                                 </ul>
-
                                 <p>Additional documents requested during the casework process can be sent to us via email or posted to the address provided below.</p>
-
                                 <h3 style="text-decoration: underline;">Termination of Instructions</h3>
                                 <p><b>You may end your instructions to us at any time, but this must be done in writing. If we stop working on your matter, whether you terminate our instructions or for other reasons outlined below, we have the right to retain all your documents and papers until any outstanding charges and expenses are fully paid.</b></p>
-
                                 <p><b>There may be situations where you believe we should stop acting for you, such as losing confidence in how we are handling your case. Similarly, we may choose to stop acting for you, but only for valid reasons. Examples include failure to pay an interim bill or to make a payment requested on account.</b></p>
-
                                 <p><b>If we decide to stop working on your case, we will provide reasonable notice. If we stop acting for you because of unpaid bills or payments on account of costs or expenses, and your matter involves litigation, we may apply to the court to formally withdraw as your legal representatives. After this, you would proceed as a "litigant in person."</b></p>
-
                                 <h3 style="text-decoration: underline;">The work I will carry out</h3>
-                                <p>The work I will be undertaking on your behalf includes the following steps:</p>
+                                 <p>The work I will be undertaking on your behalf includes the following steps:</p>
                                 <ol>
                                     <li>Submitting an appeal to the First Tier Tribunal to challenge the decision to refuse your UK visa application.</li>
                                     <li>Reviewing your documents and planning the appeal process.</li>
@@ -335,7 +346,7 @@
                                 <p>The invoice is to be paid in advance into our business bank account (clients account if applicable) below on signing this client care and prior to the evidence being sent. An invoice will be raised on completion of the instruction and on receipt of the payment.</p>
                                 @if ($data['bank'])
                                 <div>
-                                    {!! $data['bank']->formattedDetails() !!}
+                                  <strong>{!! $data['bank']->formattedDetails() !!}</strong>
                                 </div>
                                 @else
                                 <p>No bank information available.</p>
@@ -363,7 +374,7 @@
 
                                 <p>During the hearing, situations might arise where a counsel or representative need to decide whether to request or agree to a postponement. If we are unable to contact you in the moment, we will use the counsel’s suggestion and our professional judgment to decide if postponement is necessary to protect your case. Please let us know in advance if you do not want us to make such decisions on your behalf.</p>
 
-                                <p>If the case extends beyond one day, or if I or the appointed counsel attend a hearing that does not proceed as scheduled (whether it does not start or is postponed), there will be a new charge for the hearing, an additional fee of <strong>£{{$data['lteccl']->reappear_fee ?? 'Default ReAppear fee'}}</strong><b>+ VAT (if applicable) </b> each extra day <b>[Note: this is payable to the counsel for the appearance].</b></p>
+                                <p>If the case extends beyond one day, or if I or the appointed counsel attend a hearing that does not proceed as scheduled (whether it does not start or is postponed), there will be a new charge for the hearing, an additional fee of <strong>£{{$data['lteccl']->reappear_fee ?? 'Default ReAppear fee'}}</strong><b> + VAT (if applicable)</b> for each extra day <b>[Note: this is payable to the counsel for the appearance].</b></p>
 
                                 <h3 style="text-decoration: underline;">OUTCOME OF THE MATTER</h3>
                                 <p>We will try our best to get a favourable outcome on all matters. However, success is not guaranteed, and the outcome is dependent upon the merit of your case. We do not operate on a “no win no fee basis”.</p>
@@ -428,9 +439,7 @@
 
                                 <p>To proceed with your Immigration Appeal, you must sign the client care letter and provide your GDPR consent as mentioned at the end of this letter. Please note that we can commence work on your case only upon receipt of these documents.</p>
 
-
-
-                        </textarea>
+                            </textarea>
                         </div>
                     </div>
                 </div>
@@ -464,6 +473,7 @@
                     </div>
                 </div>
              </form>
+             
         </div>
     </div>
 @endsection
